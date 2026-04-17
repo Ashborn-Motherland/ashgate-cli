@@ -1,0 +1,5 @@
+# wallet.yaml — Configuration ash-wallet pour ce projet Flutter
+# Généré par wallet-cli le 2026-03-07T16:35:11.319Z
+project: idfhdkfdfd
+cloud_url: http://localhost:3000
+environment: sandbox
