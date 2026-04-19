@@ -11,7 +11,7 @@ function registerAuthCommands(program) {
     const auth = program.command('auth').description('Gestion de l\'authentification');
     auth
         .command('login')
-        .description('Se connecter à la plateforme ash-wallet via Keycloak')
+        .description('Se connecter à la plateforme Ashgate via Keycloak')
         .action(async () => {
         try {
             await (0, keycloak_1.loginWithKeycloak)();
@@ -34,7 +34,7 @@ function registerAuthCommands(program) {
         .action(() => {
         const tokens = config_1.walletConfig.getTokens();
         if (!tokens.refreshToken || tokens.refreshExpiresAt <= Date.now()) {
-            console.log(chalk_1.default.yellow('✗ Non authentifié. Lancez : wallet auth login'));
+            console.log(chalk_1.default.yellow('✗ Non authentifié. Lancez : ashgate auth login'));
             return;
         }
         const msLeft = tokens.refreshExpiresAt - Date.now();

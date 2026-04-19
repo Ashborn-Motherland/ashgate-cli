@@ -5,8 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.walletConfig = void 0;
 const configstore_1 = __importDefault(require("configstore"));
-const store = new configstore_1.default('wallet-cli', {
-    wallet: { cloudUrl: 'http://localhost:3005', environment: 'sandbox' },
+const store = new configstore_1.default('ashgate-cli', {
+    wallet: { cloudUrl: 'https://api.ash-pay.com' },
     tokens: { accessToken: '', refreshToken: '', expiresAt: 0, refreshExpiresAt: 0 },
 });
 exports.walletConfig = {

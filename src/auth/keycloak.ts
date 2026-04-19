@@ -165,13 +165,13 @@ export async function refreshTokenIfNeeded(): Promise<void> {
         });
     } catch {
         walletConfig.clearTokens();
-        throw new Error('Session expirée. Veuillez vous reconnecter : wallet auth login');
+        throw new Error('Session expirée. Veuillez vous reconnecter : ashgate auth login');
     }
 }
 
 export function requireAuth(): void {
     if (!walletConfig.isAuthenticated()) {
-        console.error(chalk.red('✗ Non authentifié. Lancez : wallet auth login'));
+        console.error(chalk.red('✗ Non authentifié. Lancez : ashgate auth login'));
         process.exit(1);
     }
 }

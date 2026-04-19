@@ -8,7 +8,7 @@ export function registerAuthCommands(program: Command): void {
 
     auth
         .command('login')
-        .description('Se connecter à la plateforme ash-wallet via Keycloak')
+        .description('Se connecter à la plateforme Ashgate via Keycloak')
         .action(async () => {
             try {
                 await loginWithKeycloak();
@@ -32,7 +32,7 @@ export function registerAuthCommands(program: Command): void {
         .action(() => {
             const tokens = walletConfig.getTokens();
             if (!tokens.refreshToken || tokens.refreshExpiresAt <= Date.now()) {
-                console.log(chalk.yellow('✗ Non authentifié. Lancez : wallet auth login'));
+                console.log(chalk.yellow('✗ Non authentifié. Lancez : ashgate auth login'));
                 return;
             }
             const msLeft = tokens.refreshExpiresAt - Date.now();

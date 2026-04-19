@@ -1,9 +1,9 @@
 {
-  "name": "wallet-cli",
+  "name": "ashgate-cli",
   "version": "3.0.0",
   "description": "CLI minimaliste pour la plateforme ash-wallet — Authentification uniquement",
   "bin": {
-    "wallet": "./dist/index.js"
+    "ashgate": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

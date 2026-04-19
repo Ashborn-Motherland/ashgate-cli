@@ -13,7 +13,7 @@ export interface TokenStore {
     email?: string;
 }
 
-const store = new Configstore('wallet-cli', {
+const store = new Configstore('ashgate-cli', {
     wallet: { cloudUrl: 'https://api.ash-pay.com' } as WalletConfig,
     tokens: { accessToken: '', refreshToken: '', expiresAt: 0, refreshExpiresAt: 0 } as TokenStore,
 });

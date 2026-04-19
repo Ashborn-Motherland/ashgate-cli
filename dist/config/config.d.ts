@@ -1,7 +1,5 @@
 export interface WalletConfig {
-    activeProject?: string;
     cloudUrl: string;
-    environment: 'sandbox' | 'live';
 }
 export interface TokenStore {
     accessToken: string;

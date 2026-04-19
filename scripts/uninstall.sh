@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# uninstall.sh — Script de désinstallation de wallet-cli
+# uninstall.sh — Script de désinstallation de ashgate-cli
 # Usage : bash scripts/uninstall.sh
 
 set -euo pipefail
 
-BINARY_NAME="wallet"
+BINARY_NAME="ashgate"
 INSTALL_DIR="/usr/local/bin"
-CONFIG_DIR="${HOME}/.wallet-cli"
+CONFIG_DIR="${HOME}/.ashgate-cli"
 
 # Couleurs
 GREEN='\033[0;32m'
@@ -23,12 +23,12 @@ error()   { echo -e "${RED}✗${RESET} $1"; exit 1; }
 BINARY_PATH="${INSTALL_DIR}/${BINARY_NAME}"
 
 echo ""
-echo -e "${RED}wallet-cli — Désinstallation${RESET}"
+echo -e "${RED}ashgate-cli — Désinstallation${RESET}"
 echo ""
 
 # Vérifier que le binaire existe
 if [ ! -f "$BINARY_PATH" ]; then
-  warn "Le binaire ${BINARY_PATH} n'existe pas. wallet-cli n'est peut-être pas installé."
+  warn "Le binaire ${BINARY_PATH} n'existe pas. ashgate-cli n'est peut-être pas installé."
 else
   info "Suppression du binaire ${BINARY_PATH}..."
   if [ -w "$INSTALL_DIR" ]; then
@@ -54,7 +54,7 @@ else
 fi
 
 echo ""
-success "wallet-cli a été désinstallé."
+success "ashgate-cli a été désinstallé."
 echo ""
 echo "  Pour réinstaller, relancez le script d'installation :"
 echo -e "  ${CYAN}bash scripts/install.sh${RESET}"

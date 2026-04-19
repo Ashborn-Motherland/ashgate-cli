@@ -10,11 +10,11 @@ import { walletConfig } from './config/config';
 const program = new Command();
 
 program
-    .name('wallet')
+    .name('ashgate')
     .description(
-        chalk.bold('wallet-cli') +
-        ' — CLI de la plateforme ash-wallet (Authentification uniquement)\n' +
-        chalk.dim('  Gérez votre session et connectez-vous au cloud.'),
+        chalk.bold('ashgate-cli') +
+        ' — Interface en ligne de commande pour la plateforme Ashgate\n' +
+        chalk.dim('  Connectez-vous à votre compte et gérez votre session.'),
     )
     .version('3.0.0');
 
@@ -28,7 +28,7 @@ program
     .action(() => {
         const cfg = walletConfig.get();
         const tokens = walletConfig.getTokens();
-        console.log(chalk.bold('\nStatut wallet-cli'));
+        console.log(chalk.bold('\nStatut ashgate-cli'));
         console.log(`  Cloud URL     : ${cfg.cloudUrl}`);
         console.log(`  Authentifié   : ${tokens.accessToken && tokens.expiresAt > Date.now() ? chalk.green('oui') : chalk.red('non')}`);
     });

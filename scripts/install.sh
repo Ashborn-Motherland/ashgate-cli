@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# install.sh — Script d'installation de wallet-cli
+# install.sh — Script d'installation de ashgate-cli
 # Usage : bash scripts/install.sh
 
 set -euo pipefail
 
 REPO="Blasterx7/ash-wallet"
-BINARY_NAME="wallet"
+BINARY_NAME="ashgate"
 INSTALL_DIR="/usr/local/bin"
 VERSION="${WALLET_CLI_VERSION:-latest}"
 
@@ -28,7 +28,7 @@ ARCH="$(uname -m)"
 case "$OS" in
   Linux*)  PLATFORM="linux" ;;
   Darwin*) PLATFORM="macos" ;;
-  *)       error "Système non supporté: $OS. Installez manuellement via pnpm: pnpx wallet-cli" ;;
+  *)       error "Système non supporté: $OS. Installez manuellement via pnpm: pnpm install -g ashgate-cli" ;;
 esac
 
 case "$ARCH" in
@@ -49,7 +49,7 @@ fi
 
 BINARY_URL="https://github.com/${REPO}/releases/download/${VERSION}/wallet-${PLATFORM}-${ARCH_LABEL}"
 
-info "Téléchargement de wallet-cli ${VERSION} (${PLATFORM}/${ARCH_LABEL})..."
+info "Téléchargement de ashgate-cli ${VERSION} (${PLATFORM}/${ARCH_LABEL})..."
 TMP_FILE=$(mktemp)
 curl -fsSL --progress-bar "$BINARY_URL" -o "$TMP_FILE" || error "Téléchargement échoué. Vérifiez que la release ${VERSION} existe."
 
@@ -63,11 +63,8 @@ else
   sudo mv "$TMP_FILE" "${INSTALL_DIR}/${BINARY_NAME}"
 fi
 
-success "wallet-cli ${VERSION} installé dans ${INSTALL_DIR}/${BINARY_NAME}"
+success "ashgate-cli ${VERSION} installé dans ${INSTALL_DIR}/${BINARY_NAME}"
 echo ""
 echo "  Commencez par vous connecter :"
-echo -e "  ${CYAN}wallet auth:login${RESET}"
-echo ""
-echo "  Puis créez votre premier projet :"
-echo -e "  ${CYAN}wallet project:create${RESET}"
+echo -e "  ${CYAN}ashgate auth login${RESET}"
 echo ""
