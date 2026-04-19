@@ -1,7 +1,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import ora from 'ora';
-import { loginWithKeycloak, requireAuth } from '../auth/keycloak';
+import { loginWithKeycloak } from '../auth/keycloak';
 import { walletConfig } from '../config/config';
 
 export function registerAuthCommands(program: Command): void {

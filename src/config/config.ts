@@ -1,9 +1,7 @@
 import Configstore from 'configstore';
 
 export interface WalletConfig {
-    activeProject?: string;
     cloudUrl: string;
-    environment: 'sandbox' | 'live';
 }
 
 export interface TokenStore {
@@ -16,7 +14,7 @@ export interface TokenStore {
 }
 
 const store = new Configstore('wallet-cli', {
-    wallet: { cloudUrl: 'http://localhost:3005', environment: 'sandbox' } as WalletConfig,
+    wallet: { cloudUrl: 'https://api.ash-pay.com' } as WalletConfig,
     tokens: { accessToken: '', refreshToken: '', expiresAt: 0, refreshExpiresAt: 0 } as TokenStore,
 });
 
