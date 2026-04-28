@@ -1,5 +1,6 @@
 export interface WalletConfig {
     cloudUrl: string;
+    realm?: string;
 }
 export interface TokenStore {
     accessToken: string;

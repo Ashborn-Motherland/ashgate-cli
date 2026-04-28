@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+
+# Build output
+dist/
+
+# Environment variables
+.env
+
+# Docker data
+postgres_data/
+
+# OS files
+.DS_Store
+Thumbs.db
