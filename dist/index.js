@@ -8,7 +8,7 @@ require("dotenv/config");
 const commander_1 = require("commander");
 const chalk_1 = __importDefault(require("chalk"));
 const auth_1 = require("./commands/auth");
-const template_1 = require("./commands/template");
+const init_1 = require("./commands/init");
 const config_1 = require("./config/config");
 const program = new commander_1.Command();
 program
@@ -19,7 +19,7 @@ program
     .version('3.0.0');
 // Enregistrement uniquement des commandes d'authentification
 (0, auth_1.registerAuthCommands)(program);
-(0, template_1.registerTemplateCommands)(program);
+(0, init_1.registerInitCommand)(program);
 // Commande config — afficher l'état de l'authentification
 program
     .command('status')
