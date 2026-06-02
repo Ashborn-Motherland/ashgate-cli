@@ -10,7 +10,7 @@ import { walletConfig, TokenStore } from '../config/config';
 const KEYCLOAK_URL = process.env.WALLET_KEYCLOAK_URL ?? 'http://localhost:8080';
 
 const REALM = process.env.WALLET_KEYCLOAK_REALM ?? 'ash';
-const CLIENT_ID = process.env.WALLET_KEYCLOAK_CLIENT_ID ?? 'wallet_cli';
+const CLIENT_ID = process.env.WALLET_KEYCLOAK_CLIENT_ID ?? 'ash-wallet-cli';
 
 const CALLBACK_PORT = 7357;
 const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/callback`;

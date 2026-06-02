@@ -5,6 +5,9 @@ import 'dotenv/config';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { registerAuthCommands } from './commands/auth';
+import { registerProjectCommands } from './commands/project';
+import { registerCompletionCommands } from './commands/completion';
+import { registerInitCommands } from './commands/init';
 import { walletConfig } from './config/config';
 
 const program = new Command();
@@ -18,8 +21,11 @@ program
     )
     .version('3.0.0');
 
-// Enregistrement uniquement des commandes d'authentification
+// Enregistrement des différentes catégories de commandes
 registerAuthCommands(program);
+registerProjectCommands(program);
+registerCompletionCommands(program);
+registerInitCommands(program);
 
 // Commande config — afficher l'état de l'authentification
 program

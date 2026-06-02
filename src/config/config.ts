@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import Configstore from 'configstore';
 
 export interface WalletConfig {
@@ -14,13 +15,16 @@ export interface TokenStore {
 }
 
 const store = new Configstore('ashgate-cli', {
-    wallet: { cloudUrl: 'https://api.ash-pay.com' } as WalletConfig,
+    wallet: { cloudUrl: process.env.WALLET_CLOUD_URL ?? 'https://app.ashgateway.com' } as WalletConfig,
     tokens: { accessToken: '', refreshToken: '', expiresAt: 0, refreshExpiresAt: 0 } as TokenStore,
 });
 
 export const walletConfig = {
     get(): WalletConfig {
-        return store.get('wallet') as WalletConfig;
+        const stored = store.get('wallet') as WalletConfig;
+        return {
+            cloudUrl: process.env.WALLET_CLOUD_URL ?? stored?.cloudUrl ?? 'https://app.ashgateway.com',
+        };
     },
     set(updates: Partial<WalletConfig>): void {
         store.set('wallet', { ...this.get(), ...updates });
