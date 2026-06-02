@@ -175,6 +175,8 @@ export function registerInitCommands(program: Command): void {
             }
 
             let feexpayMode: 'proxy' | 'sdk' = 'proxy';
+            let feexpayToken = '';
+            let feexpayShopId = '';
             if (useFeexpay) {
                 console.log(chalk.cyan('\nMode d\'intégration pour FeexPay :'));
                 console.log('  1. Proxy/Serveur USSD (Recommandé - Sécurisé et sans SDK local) [défaut]');
@@ -182,6 +184,9 @@ export function registerInitCommands(program: Command): void {
                 const modeSelection = await askQuestion('Choisissez une option (1-2) : ');
                 if (modeSelection === '2') {
                     feexpayMode = 'sdk';
+                    console.log(chalk.yellow('\n(Configuration des clés FeexPay requise pour le SDK local)'));
+                    feexpayToken = await askQuestion('Entrez votre clé API / Token FeexPay (ex: fp_xxxx ou Bearer token) : ');
+                    feexpayShopId = await askQuestion('Entrez votre Shop ID FeexPay : ');
                 }
             }
 
@@ -248,6 +253,8 @@ class AshgateConfig {
   static const ${fedaEnvType} environment = ${fedaEnvVal};
   static const bool useFedapay = ${useFedapay};
   static const bool useFeexpay = ${useFeexpay};
+  static const String feexpayToken = '${feexpayToken}';
+  static const String feexpayShopId = '${feexpayShopId}';
 }
 `;
                     fs.writeFileSync(path.join(libDir, 'ashgate_config.dart'), configContent);
@@ -390,8 +397,8 @@ class FeexpayProvider implements AshgatePaymentProvider {
         request.context!,
         MaterialPageRoute(
           builder: (context) => ChoicePage(
-            token: AshgateConfig.projectKey, // Clé de projet API
-            id: AshgateConfig.projectSlug,  // Shop ID
+            token: AshgateConfig.feexpayToken,
+            id: AshgateConfig.feexpayShopId,
             amount: request.amount.toInt().toString(),
             redirecturl: '/success',
             errorredirecturl: '/error',
