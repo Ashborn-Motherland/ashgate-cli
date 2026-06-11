@@ -5,139 +5,268 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerProjectCommands = registerProjectCommands;
 const chalk_1 = __importDefault(require("chalk"));
-const ora_1 = __importDefault(require("ora"));
-const inquirer_1 = __importDefault(require("inquirer"));
-const keycloak_1 = require("../auth/keycloak");
-const subscription_1 = require("../auth/subscription");
-const config_1 = require("../config/config");
 const client_1 = require("../api/client");
+const keycloak_1 = require("../auth/keycloak");
+function mapOptionsToDto(options) {
+    const { sandboxKey, sandboxApiKey, liveKey, liveApiKey, feexpayKey, feexpayApiKey, feexpayShop, feexpayShopId, stripeKey, stripeSecretKey, stripePub, stripePublishableKey, stripeWebhook, stripeWebhookSecret, ...rest } = options;
+    const dto = { ...rest };
+    const valOrUndefined = (val1, val2) => {
+        if (val1 !== undefined)
+            return val1;
+        if (val2 !== undefined)
+            return val2;
+        return undefined;
+    };
+    const sandboxVal = valOrUndefined(sandboxApiKey, sandboxKey);
+    if (sandboxVal !== undefined)
+        dto.sandboxApiKey = sandboxVal;
+    const liveVal = valOrUndefined(liveApiKey, liveKey);
+    if (liveVal !== undefined)
+        dto.liveApiKey = liveVal;
+    const feexpayVal = valOrUndefined(feexpayApiKey, feexpayKey);
+    if (feexpayVal !== undefined)
+        dto.feexpayApiKey = feexpayVal;
+    const feexpayShopVal = valOrUndefined(feexpayShopId, feexpayShop);
+    if (feexpayShopVal !== undefined)
+        dto.feexpayShopId = feexpayShopVal;
+    const stripeKeyVal = valOrUndefined(stripeSecretKey, stripeKey);
+    if (stripeKeyVal !== undefined)
+        dto.stripeSecretKey = stripeKeyVal;
+    const stripePubVal = valOrUndefined(stripePublishableKey, stripePub);
+    if (stripePubVal !== undefined)
+        dto.stripePublishableKey = stripePubVal;
+    const stripeWebhookVal = valOrUndefined(stripeWebhookSecret, stripeWebhook);
+    if (stripeWebhookVal !== undefined)
+        dto.stripeWebhookSecret = stripeWebhookVal;
+    return dto;
+}
 function registerProjectCommands(program) {
-    const proj = program.command('project').description('Gestion des projets ash-wallet');
-    proj
+    const project = program.command('project').description('Gestion des projets de paiement');
+    // 1. LIST PROJECTS
+    project
         .command('list')
-        .alias('ls')
-        .description('Lister mes projets')
+        .description('Lister tous vos projets')
         .action(async () => {
         (0, keycloak_1.requireAuth)();
-        await (0, keycloak_1.refreshTokenIfNeeded)();
-        await (0, subscription_1.requireProSubscription)();
-        const spinner = (0, ora_1.default)('Chargement des projets...').start();
         try {
-            const projects = await client_1.projectsApi.list();
-            spinner.stop();
-            if (!projects.length) {
-                console.log(chalk_1.default.yellow('Aucun projet. Créez-en un avec : wallet project create'));
+            const response = await client_1.apiClient.get('/projects');
+            const projects = response.data;
+            if (!Array.isArray(projects) || projects.length === 0) {
+                console.log(chalk_1.default.yellow('\nℹ Aucun projet trouvé. Créez-en un avec : ashgate project create'));
                 return;
             }
-            const active = config_1.walletConfig.get().activeProject;
+            console.log(chalk_1.default.bold('\nVos projets :'));
+            console.log(chalk_1.default.underline(`${'Nom'.padEnd(25)} ${'Slug'.padEnd(25)} ${'Billing Mode'.padEnd(15)} ${'Statut'.padEnd(10)}`));
             for (const p of projects) {
-                const isActive = p.slug === active ? chalk_1.default.green(' ← actif') : '';
-                const rate = p.commissionRate ? ` (${p.commissionRate}%)` : '';
-                console.log(`  ${chalk_1.default.bold(p.name)} ${chalk_1.default.dim(`(${p.slug})`)}${isActive}`);
-                console.log(`    Facturation clients : ${p.billingMode}${rate} | Clé : ${chalk_1.default.dim(p.publicKey)}`);
+                const statusStr = p.isActive !== false ? chalk_1.default.green('actif') : chalk_1.default.red('inactif');
+                console.log(`${(p.name || '').padEnd(25)} ` +
+                    `${(p.slug || '').padEnd(25)} ` +
+                    `${(p.billingMode || 'none').padEnd(15)} ` +
+                    `${statusStr}`);
             }
+            console.log('');
         }
-        catch {
-            spinner.fail('Erreur lors du chargement des projets');
+        catch (err) {
+            console.error(chalk_1.default.red('✗ Erreur lors de la récupération des projets :'), err.response?.data?.message || err.message);
+            process.exit(1);
         }
     });
-    proj
-        .command('use <slug>')
-        .description('Sélectionner le projet actif')
-        .action((slug) => {
-        config_1.walletConfig.set({ activeProject: slug });
-        console.log(chalk_1.default.green(`✓ Projet actif : ${slug}`));
-    });
-    proj
+    // 2. CREATE PROJECT
+    project
         .command('create')
         .description('Créer un nouveau projet')
-        .action(async () => {
+        .requiredOption('-n, --name <name>', 'Nom du projet')
+        .requiredOption('-s, --slug <slug>', 'Slug unique (URL-safe)')
+        .option('-b, --billing-mode <billingMode>', 'Mode de facturation (none, subscription, commission)', 'none')
+        .option('-c, --commission-rate <rate>', 'Taux de commission (%)', parseFloat)
+        .option('-w, --webhook-url <webhookUrl>', 'URL de notification (webhook) de destination')
+        .option('--sandbox-key <sandboxApiKey>', 'Clé API FedaPay Sandbox')
+        .option('--live-key <liveApiKey>', 'Clé API FedaPay Live')
+        .option('--feexpay-key <feexpayApiKey>', 'Clé API Feexpay')
+        .option('--feexpay-shop <feexpayShopId>', 'ID Boutique Feexpay')
+        .option('--webhook-secret <webhookSecret>', 'Secret du Webhook FedaPay')
+        .option('--stripe-key <stripeSecretKey>', 'Clé API Stripe Secrète (Secret Key)')
+        .option('--stripe-pub <stripePublishableKey>', 'Clé API Stripe Publique (Publishable Key)')
+        .option('--stripe-webhook <stripeWebhookSecret>', 'Secret du Webhook Stripe')
+        .option('--send-invoices <sendInvoices>', 'Envoyer les factures par email automatiquement (true/false)', (v) => v === 'true')
+        .action(async (options) => {
         (0, keycloak_1.requireAuth)();
-        await (0, keycloak_1.refreshTokenIfNeeded)();
-        await (0, subscription_1.requireProSubscription)();
-        const answers = await inquirer_1.default.prompt([
-            { type: 'input', name: 'name', message: 'Nom du projet :', validate: (v) => v.length > 0 },
-            {
-                type: 'input',
-                name: 'slug',
-                message: 'Slug (URL-safe, ex: mon-app) :',
-                validate: (v) => /^[a-z0-9-]+$/.test(v) || 'Lettres minuscules, chiffres et tirets uniquement',
-            },
-            {
-                type: 'list',
-                name: 'billingMode',
-                message: 'Comment voulez-vous facturer vos clients finaux ?',
-                choices: [
-                    { name: 'Aucun (standard, pas de facturation récurrente)', value: 'none' },
-                    { name: 'Abonnement mensuel/annuel (BillingPlan)', value: 'subscription' },
-                    { name: 'Commission sur chaque transaction', value: 'commission' },
-                ],
-                default: 'none',
-            },
-            {
-                type: 'input',
-                name: 'commissionRate',
-                message: 'Taux de commission (%) :',
-                when: (ans) => ans.billingMode === 'commission',
-                default: 2.0,
-                validate: (v) => !isNaN(parseFloat(v)) || 'Entrez un nombre (ex: 1.5)',
-            },
-            {
-                type: 'input',
-                name: 'sandboxApiKey',
-                message: 'Clé API FedaPay Sandbox (laissez vide pour configurer plus tard) :',
-            },
-        ]);
-        const spinner = (0, ora_1.default)('Création du projet...').start();
         try {
-            const project = await client_1.projectsApi.create({
-                name: answers.name,
-                slug: answers.slug,
-                billingMode: answers.billingMode,
-                commissionRate: answers.commissionRate ? parseFloat(answers.commissionRate) : undefined,
-                sandboxApiKey: answers.sandboxApiKey || undefined,
-            });
-            spinner.succeed(`Projet créé !`);
-            console.log(chalk_1.default.bold(`\n  Nom        : ${project.name}`));
-            console.log(`  Slug       : ${project.slug}`);
-            console.log(`  Clé publique (x-feda-project-key) : ${chalk_1.default.cyan(project.publicKey)}`);
-            console.log(chalk_1.default.dim('\n  ── Intégration depuis votre backend ────────────────────────────'));
-            console.log(`  Ajoutez ce header à toutes vos requêtes vers ash-bwallet :`);
-            console.log(chalk_1.default.cyan(`    x-feda-project-key: ${project.publicKey}`));
-            console.log(chalk_1.default.cyan(`    x-feda-env: sandbox`));
-            console.log(chalk_1.default.dim(`\n  Documentation API : README.md → section "API — Référence pour les intégrateurs"`));
-            console.log(chalk_1.default.dim(`  (Swagger sur ${config_1.walletConfig.get().cloudUrl}/api — dev uniquement, désactivé en prod)`));
-            console.log(chalk_1.default.dim('  ────────────────────────────────────────────────────'));
-            console.log(chalk_1.default.dim('\n  Pour configurer votre projet Flutter/Web, lancez depuis votre app :'));
-            console.log(chalk_1.default.cyan('    wallet init'));
-            config_1.walletConfig.set({ activeProject: project.slug });
+            const dto = mapOptionsToDto(options);
+            const response = await client_1.apiClient.post('/projects', dto);
+            console.log(chalk_1.default.green(`\n✓ Projet créé avec succès !`));
+            console.log(`  Nom  : ${response.data.name}`);
+            console.log(`  Slug : ${response.data.slug}`);
+            console.log(`  Clé Publique  : ${response.data.publicKey}`);
+            console.log(`  Clé Secrète   : ${response.data.secretKey}\n`);
         }
-        catch {
-            spinner.fail('Erreur lors de la création');
+        catch (err) {
+            console.error(chalk_1.default.red('✗ Échec de la création du projet :'), err.response?.data?.message || err.message);
+            process.exit(1);
         }
     });
-    proj
-        .command('usage [slug]')
-        .description('Afficher l\'usage (quotas) du mois courant')
+    // 3. SHOW PROJECT
+    project
+        .command('show <slug>')
+        .description('Afficher les détails d\'un projet')
         .action(async (slug) => {
         (0, keycloak_1.requireAuth)();
-        await (0, keycloak_1.refreshTokenIfNeeded)();
-        await (0, subscription_1.requireProSubscription)();
-        const target = slug ?? config_1.walletConfig.get().activeProject;
-        if (!target) {
-            console.error(chalk_1.default.red('✗ Précisez un slug ou sélectionnez un projet actif avec : wallet project use <slug>'));
-            return;
-        }
-        const spinner = (0, ora_1.default)(`Chargement de l'usage pour ${target}...`).start();
         try {
-            const usage = await client_1.projectsApi.usage(target);
-            spinner.stop();
-            console.log(chalk_1.default.bold(`\n  Usage — ${target} (${usage?.month ?? 'mois courant'})`));
-            console.log(`  Sandbox : ${usage?.sandboxCallsCount ?? 0} / 500 appels`);
-            console.log(`  Live    : ${usage?.liveTransactionsCount ?? 0} transactions`);
+            const response = await client_1.apiClient.get(`/projects/${slug}`);
+            const p = response.data;
+            console.log(chalk_1.default.bold(`\nDétails du projet [${p.name}] :`));
+            console.log(`  ID            : ${p._id || p.id}`);
+            console.log(`  Slug          : ${p.slug}`);
+            console.log(`  Billing Mode  : ${p.billingMode || 'none'}`);
+            if (p.billingMode === 'commission') {
+                console.log(`  Commission    : ${p.commissionRate || 0}%`);
+            }
+            console.log(`  Statut        : ${p.isActive !== false ? chalk_1.default.green('Actif') : chalk_1.default.red('Inactif')}`);
+            console.log(`  Webhook URL   : ${p.webhookUrl || chalk_1.default.dim('non configuré')}`);
+            console.log(`  Priorité Pmt  : ${p.paymentProviderPriority?.join(' -> ') || 'non configuré'}`);
+            console.log(`  Clé Publique  : ${p.publicKey || 'non configurée'}`);
+            console.log(`  Clé Secrète   : ${p.secretKey || 'non configurée'}`);
+            console.log(chalk_1.default.bold('\nConfiguration des API keys :'));
+            console.log(`  FedaPay Sandbox API Key : ${p.sandboxApiKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  FedaPay Live API Key    : ${p.liveApiKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  FedaPay Webhook Secret  : ${p.webhookSecret ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  FeexPay API Key         : ${p.feexpayApiKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  FeexPay Shop ID         : ${p.feexpayShopId ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}`);
+            console.log(`  Stripe Secret Key       : ${p.stripeSecretKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  Stripe Publishable Key  : ${p.stripePublishableKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  Stripe Webhook Secret   : ${p.stripeWebhookSecret ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}\n`);
         }
-        catch {
-            spinner.fail('Erreur lors du chargement de l\'usage');
+        catch (err) {
+            console.error(chalk_1.default.red('✗ Impossible d\'afficher le projet :'), err.response?.data?.message || err.message);
+            process.exit(1);
+        }
+    });
+    // 4. UPDATE PROJECT
+    project
+        .command('update <slug>')
+        .description('Mettre à jour la configuration d\'un projet')
+        .option('-n, --name <name>', 'Nom du projet')
+        .option('-b, --billing-mode <billingMode>', 'Mode de facturation (none, subscription, commission)')
+        .option('-c, --commission-rate <rate>', 'Taux de commission (%)', parseFloat)
+        .option('-w, --webhook-url <webhookUrl>', 'URL de notification (webhook)')
+        .option('--sandbox-key <sandboxApiKey>', 'Clé API FedaPay Sandbox')
+        .option('--live-key <liveApiKey>', 'Clé API FedaPay Live')
+        .option('--feexpay-key <feexpayApiKey>', 'Clé API Feexpay')
+        .option('--feexpay-shop <feexpayShopId>', 'ID Boutique Feexpay')
+        .option('--webhook-secret <webhookSecret>', 'Secret du Webhook FedaPay')
+        .option('--stripe-key <stripeSecretKey>', 'Clé API Stripe Secrète (Secret Key)')
+        .option('--stripe-pub <stripePublishableKey>', 'Clé API Stripe Publique (Publishable Key)')
+        .option('--stripe-webhook <stripeWebhookSecret>', 'Secret du Webhook Stripe')
+        .option('--send-invoices <sendInvoices>', 'Envoyer les factures (true/false)', (v) => v === 'true')
+        .action(async (slug, options) => {
+        (0, keycloak_1.requireAuth)();
+        try {
+            const dto = mapOptionsToDto(options);
+            // remove undefined values
+            const body = Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined));
+            const response = await client_1.apiClient.patch(`/projects/${slug}`, body);
+            console.log(chalk_1.default.green(`\n✓ Projet "${response.data.name}" mis à jour avec succès !\n`));
+        }
+        catch (err) {
+            console.error(chalk_1.default.red('✗ Échec de la mise à jour :'), err.response?.data?.message || err.message);
+            process.exit(1);
+        }
+    });
+    // 5. DELETE PROJECT
+    project
+        .command('delete <slug>')
+        .description('Supprimer (désactiver) un projet')
+        .action(async (slug) => {
+        (0, keycloak_1.requireAuth)();
+        try {
+            await client_1.apiClient.delete(`/projects/${slug}`);
+            console.log(chalk_1.default.green(`\n✓ Projet "${slug}" désactivé/supprimé avec succès.\n`));
+        }
+        catch (err) {
+            console.error(chalk_1.default.red('✗ Échec de la suppression :'), err.response?.data?.message || err.message);
+            process.exit(1);
+        }
+    });
+    // 6. SHOW USAGE
+    project
+        .command('usage <slug>')
+        .description('Afficher les quotas et l\'utilisation du mois en cours')
+        .action(async (slug) => {
+        (0, keycloak_1.requireAuth)();
+        try {
+            const response = await client_1.apiClient.get(`/projects/${slug}/usage`);
+            const usage = response.data;
+            console.log(chalk_1.default.bold(`\nQuotas et utilisation pour "${slug}" (${usage.month}) :`));
+            console.log(`  Plan SaaS Actif : ${chalk_1.default.blue(usage.planName)}`);
+            const sbUsage = usage.sandboxCallsCount;
+            const sbLimit = usage.sandboxLimit;
+            const sbPercent = sbLimit > 0 ? ((sbUsage / sbLimit) * 100).toFixed(1) : '0';
+            console.log(`  Appels Sandbox  : ${sbUsage} / ${sbLimit} (${sbPercent}%)`);
+            const liveUsage = usage.liveTransactionsCount;
+            const liveLimit = usage.liveLimit;
+            const livePercent = liveLimit > 0 ? ((liveUsage / liveLimit) * 100).toFixed(1) : '0';
+            console.log(`  Paiements Live  : ${liveUsage} / ${liveLimit} (${livePercent}%)\n`);
+        }
+        catch (err) {
+            console.error(chalk_1.default.red('✗ Erreur lors de la récupération des quotas :'), err.response?.data?.message || err.message);
+            process.exit(1);
+        }
+    });
+    // 7. STREAM LOGS
+    project
+        .command('logs <slug>')
+        .description('Streamer les logs de requêtes du proxy en temps réel')
+        .action(async (slug) => {
+        (0, keycloak_1.requireAuth)();
+        console.log(chalk_1.default.cyan(`\nConnecting to logs stream for "${slug}"... Press Ctrl+C to stop.\n`));
+        try {
+            const response = await client_1.apiClient.get(`/projects/${slug}/logs/stream`, {
+                responseType: 'stream',
+            });
+            const stream = response.data;
+            let buffer = '';
+            stream.on('data', (chunk) => {
+                buffer += chunk.toString();
+                const events = buffer.split('\n\n');
+                buffer = events.pop() || ''; // Keep incomplete part in buffer
+                for (const event of events) {
+                    const lines = event.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const logObj = JSON.parse(line.substring(6));
+                                const statusColor = logObj.status >= 500 ? chalk_1.default.red
+                                    : logObj.status >= 400 ? chalk_1.default.yellow
+                                        : chalk_1.default.green;
+                                const methodColor = logObj.method === 'POST' ? chalk_1.default.magenta
+                                    : logObj.method === 'DELETE' ? chalk_1.default.red
+                                        : logObj.method === 'PATCH' ? chalk_1.default.blue
+                                            : chalk_1.default.cyan;
+                                console.log(`[${chalk_1.default.dim(logObj.timestamp)}] ` +
+                                    `${methodColor(logObj.method.padEnd(6))} ` +
+                                    `${chalk_1.default.white(logObj.path.padEnd(30))} ` +
+                                    `Status: ${statusColor(logObj.status)} ` +
+                                    `Duration: ${chalk_1.default.yellow(logObj.duration + 'ms')} ` +
+                                    `Env: ${chalk_1.default.blue(logObj.env)}`);
+                            }
+                            catch (e) {
+                                // ignore invalid json
+                            }
+                        }
+                    }
+                }
+            });
+            stream.on('error', (err) => {
+                console.error(chalk_1.default.red('✗ Erreur de flux :'), err.message);
+                process.exit(1);
+            });
+            stream.on('end', () => {
+                console.log(chalk_1.default.yellow('\nℹ Flux de logs fermé par le serveur.\n'));
+            });
+        }
+        catch (err) {
+            console.error(chalk_1.default.red('✗ Impossible d\'établir la connexion de streaming :'), err.response?.data?.message || err.message);
+            process.exit(1);
         }
     });
 }

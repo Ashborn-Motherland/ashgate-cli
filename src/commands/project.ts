@@ -3,6 +3,82 @@ import chalk from 'chalk';
 import { apiClient } from '../api/client';
 import { requireAuth } from '../auth/keycloak';
 
+interface CliOptions {
+    name?: string;
+    slug?: string;
+    billingMode?: string;
+    commissionRate?: number;
+    webhookUrl?: string;
+    sandboxKey?: string;
+    sandboxApiKey?: string;
+    liveKey?: string;
+    liveApiKey?: string;
+    feexpayKey?: string;
+    feexpayApiKey?: string;
+    feexpayShop?: string;
+    feexpayShopId?: string;
+    webhookSecret?: string;
+    stripeKey?: string;
+    stripeSecretKey?: string;
+    stripePub?: string;
+    stripePublishableKey?: string;
+    stripeWebhook?: string;
+    stripeWebhookSecret?: string;
+    sendInvoices?: boolean;
+    [key: string]: any;
+}
+
+function mapOptionsToDto(options: CliOptions): Record<string, any> {
+    const {
+        sandboxKey,
+        sandboxApiKey,
+        liveKey,
+        liveApiKey,
+        feexpayKey,
+        feexpayApiKey,
+        feexpayShop,
+        feexpayShopId,
+        stripeKey,
+        stripeSecretKey,
+        stripePub,
+        stripePublishableKey,
+        stripeWebhook,
+        stripeWebhookSecret,
+        ...rest
+    } = options;
+
+    const dto: Record<string, any> = { ...rest };
+
+    const valOrUndefined = (val1: any, val2: any) => {
+        if (val1 !== undefined) return val1;
+        if (val2 !== undefined) return val2;
+        return undefined;
+    };
+
+    const sandboxVal = valOrUndefined(sandboxApiKey, sandboxKey);
+    if (sandboxVal !== undefined) dto.sandboxApiKey = sandboxVal;
+
+    const liveVal = valOrUndefined(liveApiKey, liveKey);
+    if (liveVal !== undefined) dto.liveApiKey = liveVal;
+
+    const feexpayVal = valOrUndefined(feexpayApiKey, feexpayKey);
+    if (feexpayVal !== undefined) dto.feexpayApiKey = feexpayVal;
+
+    const feexpayShopVal = valOrUndefined(feexpayShopId, feexpayShop);
+    if (feexpayShopVal !== undefined) dto.feexpayShopId = feexpayShopVal;
+
+    const stripeKeyVal = valOrUndefined(stripeSecretKey, stripeKey);
+    if (stripeKeyVal !== undefined) dto.stripeSecretKey = stripeKeyVal;
+
+    const stripePubVal = valOrUndefined(stripePublishableKey, stripePub);
+    if (stripePubVal !== undefined) dto.stripePublishableKey = stripePubVal;
+
+    const stripeWebhookVal = valOrUndefined(stripeWebhookSecret, stripeWebhook);
+    if (stripeWebhookVal !== undefined) dto.stripeWebhookSecret = stripeWebhookVal;
+
+    return dto;
+}
+
 export function registerProjectCommands(program: Command): void {
     const project = program.command('project').description('Gestion des projets de paiement');
 
@@ -57,11 +133,15 @@ export function registerProjectCommands(program: Command): void {
         .option('--feexpay-key <feexpayApiKey>', 'Clé API Feexpay')
         .option('--feexpay-shop <feexpayShopId>', 'ID Boutique Feexpay')
         .option('--webhook-secret <webhookSecret>', 'Secret du Webhook FedaPay')
+        .option('--stripe-key <stripeSecretKey>', 'Clé API Stripe Secrète (Secret Key)')
+        .option('--stripe-pub <stripePublishableKey>', 'Clé API Stripe Publique (Publishable Key)')
+        .option('--stripe-webhook <stripeWebhookSecret>', 'Secret du Webhook Stripe')
         .option('--send-invoices <sendInvoices>', 'Envoyer les factures par email automatiquement (true/false)', (v) => v === 'true')
         .action(async (options) => {
             requireAuth();
             try {
-                const response = await apiClient.post('/projects', options);
+                const dto = mapOptionsToDto(options);
+                const response = await apiClient.post('/projects', dto);
                 console.log(chalk.green(`\n✓ Projet créé avec succès !`));
                 console.log(`  Nom  : ${response.data.name}`);
                 console.log(`  Slug : ${response.data.slug}`);
@@ -101,7 +181,10 @@ export function registerProjectCommands(program: Command): void {
                 console.log(`  FedaPay Live API Key    : ${p.liveApiKey ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
                 console.log(`  FedaPay Webhook Secret  : ${p.webhookSecret ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
                 console.log(`  FeexPay API Key         : ${p.feexpayApiKey ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
-                console.log(`  FeexPay Shop ID         : ${p.feexpayShopId ? chalk.green('Configuré') : chalk.dim('Non configuré')}\n`);
+                console.log(`  FeexPay Shop ID         : ${p.feexpayShopId ? chalk.green('Configuré') : chalk.dim('Non configuré')}`);
+                console.log(`  Stripe Secret Key       : ${p.stripeSecretKey ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
+                console.log(`  Stripe Publishable Key  : ${p.stripePublishableKey ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
+                console.log(`  Stripe Webhook Secret   : ${p.stripeWebhookSecret ? chalk.green('Configuré') : chalk.dim('Non configuré')}\n`);
             } catch (err: any) {
                 console.error(chalk.red('✗ Impossible d\'afficher le projet :'), err.response?.data?.message || err.message);
                 process.exit(1);
@@ -121,12 +204,16 @@ export function registerProjectCommands(program: Command): void {
         .option('--feexpay-key <feexpayApiKey>', 'Clé API Feexpay')
         .option('--feexpay-shop <feexpayShopId>', 'ID Boutique Feexpay')
         .option('--webhook-secret <webhookSecret>', 'Secret du Webhook FedaPay')
+        .option('--stripe-key <stripeSecretKey>', 'Clé API Stripe Secrète (Secret Key)')
+        .option('--stripe-pub <stripePublishableKey>', 'Clé API Stripe Publique (Publishable Key)')
+        .option('--stripe-webhook <stripeWebhookSecret>', 'Secret du Webhook Stripe')
         .option('--send-invoices <sendInvoices>', 'Envoyer les factures (true/false)', (v) => v === 'true')
         .action(async (slug, options) => {
             requireAuth();
             try {
+                const dto = mapOptionsToDto(options);
                 // remove undefined values
-                const body = Object.fromEntries(Object.entries(options).filter(([_, v]) => v !== undefined));
+                const body = Object.fromEntries(Object.entries(dto).filter(([_, v]) => v !== undefined));
                 const response = await apiClient.patch(`/projects/${slug}`, body);
                 console.log(chalk.green(`\n✓ Projet "${response.data.name}" mis à jour avec succès !\n`));
             } catch (err: any) {

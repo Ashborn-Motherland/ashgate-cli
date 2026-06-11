@@ -16,7 +16,7 @@ const chalk_1 = __importDefault(require("chalk"));
 const config_1 = require("../config/config");
 const KEYCLOAK_URL = process.env.WALLET_KEYCLOAK_URL ?? 'http://localhost:8080';
 const REALM = process.env.WALLET_KEYCLOAK_REALM ?? 'ash';
-const CLIENT_ID = process.env.WALLET_KEYCLOAK_CLIENT_ID ?? 'wallet_cli';
+const CLIENT_ID = process.env.WALLET_KEYCLOAK_CLIENT_ID ?? 'ash-wallet-cli';
 const CALLBACK_PORT = 7357;
 const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/callback`;
 function base64url(buf) {
@@ -55,6 +55,7 @@ async function loginWithKeycloak() {
             const returnedCode = url.searchParams.get('code');
             const returnedState = url.searchParams.get('state');
             if (returnedState !== state) {
+                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
                 res.end('<h2>❌ State mismatch — sécurité compromise</h2>');
                 clearTimeout(timeout);
                 server.close();
@@ -62,18 +63,20 @@ async function loginWithKeycloak() {
                 return;
             }
             if (!returnedCode) {
+                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
                 res.end('<h2>❌ Code manquant dans le callback</h2>');
                 clearTimeout(timeout);
                 server.close();
                 reject(new Error('No code in callback'));
                 return;
             }
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(`
-        <html><body style="font-family:sans-serif;text-align:center;padding:60px">
-        <h2>✅ Authentification réussie !</h2>
-        <p>Vous pouvez fermer cette fenêtre et revenir au terminal.</p>
-        </body></html>
-      `);
+    <div style="text-align: center; font-family: sans-serif; margin-top: 50px;">
+      <h1>✅ Authentification réussie !</h1>
+      <p>Vous pouvez fermer cette fenêtre et revenir au terminal.</p>
+    </div>
+  `);
             clearTimeout(timeout);
             server.close();
             resolve(returnedCode);

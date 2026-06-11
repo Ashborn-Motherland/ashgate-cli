@@ -8,6 +8,9 @@ require("dotenv/config");
 const commander_1 = require("commander");
 const chalk_1 = __importDefault(require("chalk"));
 const auth_1 = require("./commands/auth");
+const project_1 = require("./commands/project");
+const completion_1 = require("./commands/completion");
+const init_1 = require("./commands/init");
 const config_1 = require("./config/config");
 const program = new commander_1.Command();
 program
@@ -16,8 +19,11 @@ program
     ' — Interface en ligne de commande pour la plateforme Ashgate\n' +
     chalk_1.default.dim('  Connectez-vous à votre compte et gérez votre session.'))
     .version('3.0.0');
-// Enregistrement uniquement des commandes d'authentification
+// Enregistrement des différentes catégories de commandes
 (0, auth_1.registerAuthCommands)(program);
+(0, project_1.registerProjectCommands)(program);
+(0, completion_1.registerCompletionCommands)(program);
+(0, init_1.registerInitCommands)(program);
 // Commande config — afficher l'état de l'authentification
 program
     .command('status')
