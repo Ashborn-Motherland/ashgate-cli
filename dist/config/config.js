@@ -7,14 +7,19 @@ exports.walletConfig = void 0;
 require("dotenv/config");
 const configstore_1 = __importDefault(require("configstore"));
 const store = new configstore_1.default('ashgate-cli', {
-    wallet: { cloudUrl: process.env.WALLET_CLOUD_URL ?? 'https://app.ashgateway.com' },
+    wallet: { cloudUrl: process.env.WALLET_CLOUD_URL ?? 'https://api.ashgateway.com' },
     tokens: { accessToken: '', refreshToken: '', expiresAt: 0, refreshExpiresAt: 0 },
 });
 exports.walletConfig = {
     get() {
         const stored = store.get('wallet');
+        const defaultUrl = process.env.WALLET_CLOUD_URL ?? 'https://api.ashgateway.com';
+        if (!stored?.cloudUrl || stored.cloudUrl === 'https://app.ashgateway.com' || stored.cloudUrl.includes('localhost')) {
+            store.set('wallet', { cloudUrl: defaultUrl });
+            return { cloudUrl: defaultUrl };
+        }
         return {
-            cloudUrl: process.env.WALLET_CLOUD_URL ?? stored?.cloudUrl ?? 'https://app.ashgateway.com',
+            cloudUrl: process.env.WALLET_CLOUD_URL ?? stored.cloudUrl,
         };
     },
     set(updates) {

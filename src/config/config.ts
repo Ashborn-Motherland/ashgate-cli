@@ -15,15 +15,20 @@ export interface TokenStore {
 }
 
 const store = new Configstore('ashgate-cli', {
-    wallet: { cloudUrl: process.env.WALLET_CLOUD_URL ?? 'https://app.ashgateway.com' } as WalletConfig,
+    wallet: { cloudUrl: process.env.WALLET_CLOUD_URL ?? 'https://api.ashgateway.com' } as WalletConfig,
     tokens: { accessToken: '', refreshToken: '', expiresAt: 0, refreshExpiresAt: 0 } as TokenStore,
 });
 
 export const walletConfig = {
     get(): WalletConfig {
         const stored = store.get('wallet') as WalletConfig;
+        const defaultUrl = process.env.WALLET_CLOUD_URL ?? 'https://api.ashgateway.com';
+        if (!stored?.cloudUrl || stored.cloudUrl === 'https://app.ashgateway.com' || stored.cloudUrl.includes('localhost')) {
+            store.set('wallet', { cloudUrl: defaultUrl });
+            return { cloudUrl: defaultUrl };
+        }
         return {
-            cloudUrl: process.env.WALLET_CLOUD_URL ?? stored?.cloudUrl ?? 'https://app.ashgateway.com',
+            cloudUrl: process.env.WALLET_CLOUD_URL ?? stored.cloudUrl,
         };
     },
     set(updates: Partial<WalletConfig>): void {
