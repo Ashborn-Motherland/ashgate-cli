@@ -23,16 +23,6 @@ Téléchargez l'exécutable adapté à votre système d'exploitation depuis la d
 - **macOS (Apple Silicon M1/M2/M3)** : `ashgate-macos-arm64`
 - **macOS (Intel)** : `ashgate-macos-x64`
 
-### 3. Via NPM
-
-```bash
-# Installation globale
-npm install -g ashgate-cli
-
-# Ou exécution directe sans installation
-npx ashgate-cli doctor
-```
-
 ---
 
 ## 🚀 Commandes Principales
