@@ -40,7 +40,7 @@ export function registerInitCommands(program: Command): void {
                 console.log(chalk.bold.cyan('\n🚀 Initialisation d\'Ash Gateway dans votre projet local...'));
 
             const cwd = process.cwd();
-            let detectedType: 'flutter' | 'nuxt' | 'react' | 'express' | 'rails' | null = null;
+            let detectedType: 'flutter' | 'nuxt' | 'vue' | 'next' | 'react' | 'express' | 'rails' | null = null;
             let projectPath = cwd;
 
             // 1. DÉTECTION DU PROJET
@@ -54,7 +54,11 @@ export function registerInitCommands(program: Command): void {
                     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
                     if (deps.nuxt) {
                         detectedType = 'nuxt';
-                    } else if (deps.next || deps.react) {
+                    } else if (deps.next) {
+                        detectedType = 'next';
+                    } else if (deps.vue) {
+                        detectedType = 'vue';
+                    } else if (deps.react) {
                         detectedType = 'react';
                     } else if (deps.express) {
                         detectedType = 'express';
@@ -84,7 +88,15 @@ export function registerInitCommands(program: Command): void {
                                 detectedType = 'nuxt';
                                 projectPath = subPath;
                                 break;
-                            } else if (deps.next || deps.react) {
+                            } else if (deps.next) {
+                                detectedType = 'next';
+                                projectPath = subPath;
+                                break;
+                            } else if (deps.vue) {
+                                detectedType = 'vue';
+                                projectPath = subPath;
+                                break;
+                            } else if (deps.react) {
                                 detectedType = 'react';
                                 projectPath = subPath;
                                 break;
@@ -97,10 +109,10 @@ export function registerInitCommands(program: Command): void {
             if (detectedType) {
                 console.log(chalk.green(`✓ Projet détecté : ${chalk.bold(detectedType.toUpperCase())} dans ${path.relative(cwd, projectPath) || '.'}`));
             } else {
-                console.log(chalk.cyan('\nTypes de projets supportés : flutter, nuxt, react, express, rails'));
+                console.log(chalk.cyan('\nTypes de projets supportés : flutter, nuxt, vue, next, react, express, rails'));
                 const manual = await askQuestion('Veuillez entrer le type de votre projet manuellement : ');
                 const type = manual.toLowerCase();
-                if (['flutter', 'nuxt', 'react', 'express', 'rails'].includes(type)) {
+                if (['flutter', 'nuxt', 'vue', 'next', 'react', 'express', 'rails'].includes(type)) {
                     detectedType = type as any;
                 } else {
                     console.error(chalk.red('✗ Type de projet non supporté.'));
@@ -1437,120 +1449,637 @@ class _MyHomePageState extends State<MyHomePage> {
                     }
 
                 } else if (detectedType === 'nuxt') {
-                    // Écrire les clés dans le .env
+                    // --- INTEGRATION NUXT 3 ---
                     const envPath = path.join(projectPath, '.env');
-                    const envVars = `\nASHGATE_API_URL=${cloudUrl}\nASHGATE_PROJECT_KEY=${projectKey}\nASHGATE_ENV=${environment}\n`;
+                    const envVars = `\nNUXT_PUBLIC_ASHGATE_API_URL=${cloudUrl}\nNUXT_PUBLIC_ASHGATE_PROJECT_KEY=${projectKey}\nNUXT_PUBLIC_ASHGATE_ENV=${environment}\n`;
                     fs.appendFileSync(envPath, envVars);
-                    console.log(chalk.green('✓ Fichier .env mis à jour avec les variables ASHGATE.'));
+                    console.log(chalk.green('✓ Fichier .env mis à jour avec les variables NUXT_PUBLIC_ASHGATE.'));
 
-                    // Générer un composant Vue
+                    // 1. Server Route Nitro : server/api/ashgate/checkout.post.ts
+                    const serverApiDir = path.join(projectPath, 'server', 'api', 'ashgate');
+                    if (!fs.existsSync(serverApiDir)) fs.mkdirSync(serverApiDir, { recursive: true });
+
+                    const serverNitroContent = `export default defineEventHandler(async (event) => {
+  const body = await readBody(event);
+  const config = useRuntimeConfig();
+  const apiUrl = config.public.ashgateApiUrl || '${cloudUrl}';
+  const projectKey = config.public.ashgateProjectKey || '${projectKey}';
+
+  const provider = (body.provider || 'fedapay').toLowerCase();
+  const endpoint = provider === 'feexpay'
+    ? \`\${apiUrl}/feexpay/payin\`
+    : \`\${apiUrl}/fedapay/direct-payment\`;
+
+  const payload = provider === 'feexpay'
+    ? {
+        network: body.operator || 'mtn',
+        amount: body.amount,
+        phoneNumber: body.phoneNumber,
+        fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
+        email: body.email,
+        description: body.description || 'Paiement Ashgate',
+      }
+    : {
+        provider: provider,
+        amount: body.amount,
+        currency: body.currency || 'XOF',
+        email: body.email,
+        firstname: body.firstname,
+        lastname: body.lastname,
+        phoneNumber: body.phoneNumber,
+        description: body.description || 'Paiement Ashgate',
+      };
+
+  try {
+    const res = await $fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'x-feda-project-key': projectKey,
+      },
+      body: payload,
+    });
+    return res;
+  } catch (err: any) {
+    throw createError({
+      statusCode: err.statusCode || 500,
+      statusMessage: err.data?.message || err.message || 'Échec du paiement Ashgate',
+    });
+  }
+});
+`;
+                    fs.writeFileSync(path.join(serverApiDir, 'checkout.post.ts'), serverNitroContent);
+                    console.log(chalk.green('✓ Route serveur server/api/ashgate/checkout.post.ts générée.'));
+
+                    // 2. Composable Nuxt 3 : composables/useAshgatePayment.ts
+                    const composablesDir = path.join(projectPath, 'composables');
+                    if (!fs.existsSync(composablesDir)) fs.mkdirSync(composablesDir, { recursive: true });
+
+                    const composableContent = `export function useAshgatePayment() {
+  const isProcessing = ref(false);
+  const paymentUrl = ref<string | null>(null);
+  const error = ref<string | null>(null);
+
+  const initCheckout = async (params: {
+    provider: 'fedapay' | 'feexpay' | 'stripe';
+    amount: number;
+    currency?: string;
+    email: string;
+    firstname?: string;
+    lastname?: string;
+    phoneNumber?: string;
+    operator?: 'mtn' | 'moov' | 'celtiis';
+    description?: string;
+  }) => {
+    isProcessing.value = true;
+    error.value = null;
+    paymentUrl.value = null;
+
+    try {
+      const res: any = await $fetch('/api/ashgate/checkout', {
+        method: 'POST',
+        body: params,
+      });
+
+      const url = res.url || res.payment_url;
+      if (url) {
+        paymentUrl.value = url;
+      }
+      return res;
+    } catch (err: any) {
+      error.value = err.statusMessage || err.message || 'Échec du paiement';
+      throw err;
+    } finally {
+      isProcessing.value = false;
+    }
+  };
+
+  return {
+    isProcessing,
+    paymentUrl,
+    error,
+    initCheckout,
+  };
+}
+`;
+                    fs.writeFileSync(path.join(composablesDir, 'useAshgatePayment.ts'), composableContent);
+                    console.log(chalk.green('✓ Composable composables/useAshgatePayment.ts généré.'));
+
+                    // 3. Composant Vue 3 : components/AshgateCheckout.vue
                     const compDir = path.join(projectPath, 'components');
                     if (!fs.existsSync(compDir)) fs.mkdirSync(compDir, { recursive: true });
 
                     const vueContent = `<template>
-  <div class="ashgate-payment-widget">
-    <iframe
-      v-if="paymentUrl"
-      :src="paymentUrl"
-      class="w-full h-[600px] border-0 rounded-lg shadow-sm"
-      allow="payment"
-    ></iframe>
-    <div v-else class="text-center p-6 text-gray-500">
-      Chargement du paiement...
+  <div class="ashgate-checkout p-6 bg-slate-900 text-white rounded-xl shadow-xl max-w-md mx-auto border border-slate-800">
+    <h2 class="text-xl font-bold mb-4 text-center">Paiement Sécurisé Ashgate</h2>
+
+    <form @submit.prevent="handlePay" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1 text-slate-300">Fournisseur</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            v-for="p in ['fedapay', 'feexpay', 'stripe']"
+            :key="p"
+            @click="form.provider = p"
+            :class="[
+              'py-2 px-3 text-sm font-semibold rounded-lg border transition',
+              form.provider === p
+                ? 'bg-indigo-600 border-indigo-500 text-white'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+            ]"
+          >
+            {{ p.toUpperCase() }}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-slate-300">Montant ({{ form.currency }})</label>
+        <input
+          v-model.number="form.amount"
+          type="number"
+          required
+          class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-slate-300">Email</label>
+        <input
+          v-model="form.email"
+          type="email"
+          required
+          class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+        />
+      </div>
+
+      <div v-if="form.provider !== 'stripe'">
+        <label class="block text-sm font-medium mb-1 text-slate-300">Téléphone Mobile Money</label>
+        <input
+          v-model="form.phoneNumber"
+          type="tel"
+          placeholder="90000000"
+          required
+          class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+        />
+      </div>
+
+      <div v-if="form.provider !== 'stripe'">
+        <label class="block text-sm font-medium mb-1 text-slate-300">Opérateur</label>
+        <select
+          v-model="form.operator"
+          class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+        >
+          <option value="mtn">MTN Mobile Money</option>
+          <option value="moov">Moov Money</option>
+          <option value="celtiis">Celtiis Cash</option>
+        </select>
+      </div>
+
+      <button
+        type="submit"
+        :disabled="isProcessing"
+        class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-lg shadow-lg transition"
+      >
+        <span v-if="isProcessing">Traitement en cours...</span>
+        <span v-else>Payer {{ form.amount }} {{ form.currency }}</span>
+      </button>
+
+      <p v-if="error" class="text-red-400 text-sm text-center mt-2">{{ error }}</p>
+    </form>
+
+    <div v-if="paymentUrl" class="mt-6 border-t border-slate-800 pt-4">
+      <iframe :src="paymentUrl" class="w-full h-[500px] border-0 rounded-lg shadow" allow="payment"></iframe>
     </div>
   </div>
 </template>
 
 <script setup>
 const props = defineProps({
-  amount: { type: Number, required: true },
-  description: { type: String, default: 'Paiement Ashgate' },
-  customerEmail: { type: String, required: true },
+  amount: { type: Number, default: 5000 },
+  currency: { type: String, default: 'XOF' },
 });
 
-const paymentUrl = ref(null);
+const form = reactive({
+  provider: 'fedapay',
+  amount: props.amount,
+  currency: props.currency,
+  email: 'client@example.com',
+  firstname: 'Alexis',
+  lastname: 'Ashborn',
+  phoneNumber: '90000000',
+  operator: 'mtn',
+  description: 'Abonnement Ashgate',
+});
 
-onMounted(async () => {
+const { isProcessing, paymentUrl, error, initCheckout } = useAshgatePayment();
+
+const handlePay = async () => {
   try {
-    const config = useRuntimeConfig();
-    const res = await $fetch('/fedapay/direct-payment', {
-      baseURL: '${cloudUrl}',
-      method: 'POST',
-      headers: {
-        'x-feda-project-key': '${projectKey}',
-        'x-feda-env': '${environment}',
-      },
-      body: {
-        amount: props.amount,
-        description: props.description,
-        email: props.customerEmail,
-        // Autres infos clients optionnelles
-      }
-    });
-    paymentUrl.value = res.url;
-  } catch (err) {
-    console.error('Erreur d\\'initialisation du paiement Ashgate:', err);
+    await initCheckout(form);
+  } catch (e) {
+    console.error('Erreur checkout:', e);
   }
-});
+};
 </script>
 `;
-                    fs.writeFileSync(path.join(compDir, 'AshgatePayment.vue'), vueContent);
-                    console.log(chalk.green('✓ Composant components/AshgatePayment.vue généré.'));
+                    fs.writeFileSync(path.join(compDir, 'AshgateCheckout.vue'), vueContent);
+                    console.log(chalk.green('✓ Composant components/AshgateCheckout.vue généré.'));
 
-                } else if (detectedType === 'react') {
-                    // Écrire les clés dans le .env
+                } else if (detectedType === 'vue') {
+                    // --- INTEGRATION VUE 3 ---
+                    const envPath = path.join(projectPath, '.env');
+                    const envVars = `\nVITE_ASHGATE_API_URL=${cloudUrl}\nVITE_ASHGATE_PROJECT_KEY=${projectKey}\nVITE_ASHGATE_ENV=${environment}\n`;
+                    fs.appendFileSync(envPath, envVars);
+                    console.log(chalk.green('✓ Fichier .env mis à jour avec les variables VITE_ASHGATE.'));
+
+                    const srcDir = path.join(projectPath, 'src');
+                    const compDir = path.join(srcDir, 'components');
+                    const composablesDir = path.join(srcDir, 'composables');
+                    if (!fs.existsSync(compDir)) fs.mkdirSync(compDir, { recursive: true });
+                    if (!fs.existsSync(composablesDir)) fs.mkdirSync(composablesDir, { recursive: true });
+
+                    const composableVue = `import { ref } from 'vue';
+
+export function useAshgatePayment() {
+  const isProcessing = ref(false);
+  const paymentUrl = ref(null);
+  const error = ref(null);
+
+  const initCheckout = async (params) => {
+    isProcessing.value = true;
+    error.value = null;
+    paymentUrl.value = null;
+
+    const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
+    const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
+
+    const provider = (params.provider || 'fedapay').toLowerCase();
+    const endpoint = provider === 'feexpay'
+      ? \`\${apiUrl}/feexpay/payin\`
+      : \`\${apiUrl}/fedapay/direct-payment\`;
+
+    const payload = provider === 'feexpay'
+      ? {
+          network: params.operator || 'mtn',
+          amount: params.amount,
+          phoneNumber: params.phoneNumber,
+          fullname: \`\${params.firstname || ''} \${params.lastname || ''}\`.trim(),
+          email: params.email,
+          description: params.description || 'Paiement Ashgate',
+        }
+      : {
+          provider: provider,
+          amount: params.amount,
+          currency: params.currency || 'XOF',
+          email: params.email,
+          firstname: params.firstname,
+          lastname: params.lastname,
+          phoneNumber: params.phoneNumber,
+          description: params.description || 'Paiement Ashgate',
+        };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-feda-project-key': projectKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Échec de l’initialisation');
+
+      const url = data.url || data.payment_url;
+      if (url) paymentUrl.value = url;
+      return data;
+    } catch (err) {
+      error.value = err.message || 'Erreur lors du paiement';
+      throw err;
+    } finally {
+      isProcessing.value = false;
+    }
+  };
+
+  return { isProcessing, paymentUrl, error, initCheckout };
+}
+`;
+                    fs.writeFileSync(path.join(composablesDir, 'useAshgatePayment.js'), composableVue);
+                    console.log(chalk.green('✓ Composable src/composables/useAshgatePayment.js généré.'));
+
+                } else if (detectedType === 'next') {
+                    // --- INTEGRATION NEXT.JS ---
                     const envPath = path.join(projectPath, '.env');
                     const envVars = `\nNEXT_PUBLIC_ASHGATE_API_URL=${cloudUrl}\nNEXT_PUBLIC_ASHGATE_PROJECT_KEY=${projectKey}\nNEXT_PUBLIC_ASHGATE_ENV=${environment}\n`;
                     fs.appendFileSync(envPath, envVars);
-                    console.log(chalk.green('✓ Fichier .env mis à jour.'));
+                    console.log(chalk.green('✓ Fichier .env mis à jour avec NEXT_PUBLIC_ASHGATE.'));
 
+                    // 1. App Router API Route : app/api/ashgate/checkout/route.ts
+                    const appApiDir = path.join(projectPath, 'app', 'api', 'ashgate', 'checkout');
+                    if (!fs.existsSync(appApiDir)) fs.mkdirSync(appApiDir, { recursive: true });
+
+                    const nextRouteContent = `import { NextResponse } from 'next/server';
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const apiUrl = process.env.NEXT_PUBLIC_ASHGATE_API_URL || '${cloudUrl}';
+    const projectKey = process.env.NEXT_PUBLIC_ASHGATE_PROJECT_KEY || '${projectKey}';
+
+    const provider = (body.provider || 'fedapay').toLowerCase();
+    const endpoint = provider === 'feexpay'
+      ? \`\${apiUrl}/feexpay/payin\`
+      : \`\${apiUrl}/fedapay/direct-payment\`;
+
+    const payload = provider === 'feexpay'
+      ? {
+          network: body.operator || 'mtn',
+          amount: body.amount,
+          phoneNumber: body.phoneNumber,
+          fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
+          email: body.email,
+          description: body.description || 'Paiement Ashgate',
+        }
+      : {
+          provider: provider,
+          amount: body.amount,
+          currency: body.currency || 'XOF',
+          email: body.email,
+          firstname: body.firstname,
+          lastname: body.lastname,
+          phoneNumber: body.phoneNumber,
+          description: body.description || 'Paiement Ashgate',
+        };
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-feda-project-key': projectKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return NextResponse.json({ error: data.message || 'Échec du paiement' }, { status: res.status });
+    }
+    return NextResponse.json(data);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Erreur Interne' }, { status: 500 });
+  }
+}
+`;
+                    fs.writeFileSync(path.join(appApiDir, 'route.ts'), nextRouteContent);
+                    console.log(chalk.green('✓ Next.js App Router Route app/api/ashgate/checkout/route.ts générée.'));
+
+                    // 2. React Hook : hooks/useAshgatePayment.ts
+                    const hooksDir = path.join(projectPath, 'hooks');
+                    if (!fs.existsSync(hooksDir)) fs.mkdirSync(hooksDir, { recursive: true });
+
+                    const hookContent = `import { useState } from 'react';
+
+export function useAshgatePayment() {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const initCheckout = async (params: {
+    provider: 'fedapay' | 'feexpay' | 'stripe';
+    amount: number;
+    currency?: string;
+    email: string;
+    firstname?: string;
+    lastname?: string;
+    phoneNumber?: string;
+    operator?: 'mtn' | 'moov' | 'celtiis';
+    description?: string;
+  }) => {
+    setIsProcessing(true);
+    setError(null);
+    setPaymentUrl(null);
+
+    try {
+      const res = await fetch('/api/ashgate/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Échec du paiement');
+
+      const url = data.url || data.payment_url;
+      if (url) setPaymentUrl(url);
+      return data;
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors du paiement');
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return { isProcessing, paymentUrl, error, initCheckout };
+}
+`;
+                    fs.writeFileSync(path.join(hooksDir, 'useAshgatePayment.ts'), hookContent);
+                    console.log(chalk.green('✓ React Hook hooks/useAshgatePayment.ts généré.'));
+
+                    // 3. React Component : components/AshgateCheckout.tsx
                     const compDir = path.join(projectPath, 'components');
                     if (!fs.existsSync(compDir)) fs.mkdirSync(compDir, { recursive: true });
 
-                    const reactContent = `import React, { useEffect, useState } from 'react';
+                    const reactNextComponent = `'use client';
 
-export default function AshgatePayment({ amount, description, customerEmail, onSuccess, onFailure }) {
-  const [paymentUrl, setPaymentUrl] = useState('');
+import React, { useState } from 'react';
+import { useAshgatePayment } from '../hooks/useAshgatePayment';
 
-  useEffect(() => {
-    async function initPayment() {
-      try {
-        const res = await fetch('${cloudUrl}/fedapay/direct-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-feda-project-key': '${projectKey}',
-            'x-feda-env': '${environment}',
-          },
-          body: JSON.stringify({ amount, description, email: customerEmail }),
-        });
-        const data = await res.json();
-        if (data.url) setPaymentUrl(data.url);
-      } catch (err) {
-        console.error('Failed to init payment:', err);
-        if (onFailure) onFailure(err);
-      }
+export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
+  const [provider, setProvider] = useState<'fedapay' | 'feexpay' | 'stripe'>('fedapay');
+  const [email, setEmail] = useState('client@example.com');
+  const [phoneNumber, setPhoneNumber] = useState('90000000');
+  const [operator, setOperator] = useState<'mtn' | 'moov' | 'celtiis'>('mtn');
+
+  const { isProcessing, paymentUrl, error, initCheckout } = useAshgatePayment();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await initCheckout({
+        provider,
+        amount,
+        currency,
+        email,
+        phoneNumber,
+        operator,
+        description: 'Paiement via Ashgate Next.js',
+      });
+    } catch (err) {
+      console.error(err);
     }
-    initPayment();
-  }, [amount, description, customerEmail]);
+  };
 
   return (
-    <div className="ashgate-payment-container">
-      {paymentUrl ? (
-        <iframe
-          src={paymentUrl}
-          style={{ width: '100%', height: '600px', border: '0', borderRadius: '8px' }}
-          allow="payment"
-        />
-      ) : (
-        <div style={{ textAlign: 'center', padding: '20px' }}>Chargement du widget de paiement...</div>
+    <div style={{ maxWidth: '420px', margin: '2rem auto', padding: '1.5rem', background: '#0F172A', color: '#FFF', borderRadius: '12px', fontFamily: 'sans-serif' }}>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '1rem' }}>Paiement Sécurisé Ashgate</h2>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Fournisseur</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+            {(['fedapay', 'feexpay', 'stripe'] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setProvider(p)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '6px',
+                  border: '1px solid ' + (provider === p ? '#6366F1' : '#334155'),
+                  background: provider === p ? '#4F46E5' : '#1E293B',
+                  color: '#FFF',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+              >
+                {p.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+          />
+        </div>
+
+        {provider !== 'stripe' && (
+          <div>
+            <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Téléphone Mobile Money</label>
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              required
+              style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+            />
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isProcessing}
+          style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: 'none', background: '#4F46E5', color: '#FFF', fontWeight: 'bold', cursor: 'pointer', opacity: isProcessing ? 0.6 : 1 }}
+        >
+          {isProcessing ? 'Traitement en cours...' : \`Payer \${amount} \${currency}\`}
+        </button>
+
+        {error && <p style={{ color: '#EF4444', fontSize: '0.875rem', textAlign: 'center' }}>{error}</p>}
+      </form>
+
+      {paymentUrl && (
+        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #334155' }}>
+          <iframe src={paymentUrl} style={{ width: '100%', height: '500px', border: 'none', borderRadius: '8px' }} allow="payment" />
+        </div>
       )}
     </div>
   );
 }
 `;
-                    fs.writeFileSync(path.join(compDir, 'AshgatePayment.tsx'), reactContent);
-                    console.log(chalk.green('✓ Composant components/AshgatePayment.tsx généré.'));
+                    fs.writeFileSync(path.join(compDir, 'AshgateCheckout.tsx'), reactNextComponent);
+                    console.log(chalk.green('✓ Composant React components/AshgateCheckout.tsx généré.'));
+
+                } else if (detectedType === 'react') {
+                    // --- INTEGRATION REACT SPA ---
+                    const envPath = path.join(projectPath, '.env');
+                    const envVars = `\nVITE_ASHGATE_API_URL=${cloudUrl}\nVITE_ASHGATE_PROJECT_KEY=${projectKey}\nVITE_ASHGATE_ENV=${environment}\n`;
+                    fs.appendFileSync(envPath, envVars);
+                    console.log(chalk.green('✓ Fichier .env mis à jour avec VITE_ASHGATE.'));
+
+                    const srcDir = path.join(projectPath, 'src');
+                    const compDir = path.join(srcDir, 'components');
+                    const hooksDir = path.join(srcDir, 'hooks');
+                    if (!fs.existsSync(compDir)) fs.mkdirSync(compDir, { recursive: true });
+                    if (!fs.existsSync(hooksDir)) fs.mkdirSync(hooksDir, { recursive: true });
+
+                    const reactHookContent = `import { useState } from 'react';
+
+export function useAshgatePayment() {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const initCheckout = async (params: any) => {
+    setIsProcessing(true);
+    setError(null);
+    setPaymentUrl(null);
+
+    const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
+    const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
+
+    const provider = (params.provider || 'fedapay').toLowerCase();
+    const endpoint = provider === 'feexpay'
+      ? \`\${apiUrl}/feexpay/payin\`
+      : \`\${apiUrl}/fedapay/direct-payment\`;
+
+    const payload = provider === 'feexpay'
+      ? {
+          network: params.operator || 'mtn',
+          amount: params.amount,
+          phoneNumber: params.phoneNumber,
+          fullname: \`\${params.firstname || ''} \${params.lastname || ''}\`.trim(),
+          email: params.email,
+          description: params.description || 'Paiement Ashgate',
+        }
+      : {
+          provider: provider,
+          amount: params.amount,
+          currency: params.currency || 'XOF',
+          email: params.email,
+          firstname: params.firstname,
+          lastname: params.lastname,
+          phoneNumber: params.phoneNumber,
+          description: params.description || 'Paiement Ashgate',
+        };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-feda-project-key': projectKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Échec du paiement');
+
+      const url = data.url || data.payment_url;
+      if (url) setPaymentUrl(url);
+      return data;
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors du paiement');
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return { isProcessing, paymentUrl, error, initCheckout };
+}
+`;
+                    fs.writeFileSync(path.join(hooksDir, 'useAshgatePayment.ts'), reactHookContent);
+                    console.log(chalk.green('✓ React Hook src/hooks/useAshgatePayment.ts généré.'));
                 } else {
                     console.log(chalk.yellow(`\nℹ Génération des templates non supportée pour le type : ${detectedType}.`));
                 }

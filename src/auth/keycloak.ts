@@ -7,7 +7,7 @@ import open from 'open';
 import chalk from 'chalk';
 import { walletConfig, TokenStore } from '../config/config';
 
-const KEYCLOAK_URL = process.env.WALLET_KEYCLOAK_URL ?? 'http://localhost:8080';
+const KEYCLOAK_URL = process.env.WALLET_KEYCLOAK_URL ?? 'https://accounts.ashgateway.com';
 
 const REALM = process.env.WALLET_KEYCLOAK_REALM ?? 'ash';
 const CLIENT_ID = process.env.WALLET_KEYCLOAK_CLIENT_ID ?? 'ash-wallet-cli';

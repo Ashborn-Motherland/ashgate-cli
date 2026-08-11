@@ -21,14 +21,17 @@ const store = new Configstore('ashgate-cli', {
 
 export const walletConfig = {
     get(): WalletConfig {
+        if (process.env.WALLET_CLOUD_URL) {
+            return { cloudUrl: process.env.WALLET_CLOUD_URL };
+        }
         const stored = store.get('wallet') as WalletConfig;
-        const defaultUrl = process.env.WALLET_CLOUD_URL ?? 'https://api.ashgateway.com';
-        if (!stored?.cloudUrl || stored.cloudUrl === 'https://app.ashgateway.com' || stored.cloudUrl.includes('localhost')) {
+        const defaultUrl = 'https://api.ashgateway.com';
+        if (!stored?.cloudUrl || stored.cloudUrl === 'https://app.ashgateway.com' || stored.cloudUrl.includes('localhost') || stored.cloudUrl.includes('127.0.0.1')) {
             store.set('wallet', { cloudUrl: defaultUrl });
             return { cloudUrl: defaultUrl };
         }
         return {
-            cloudUrl: process.env.WALLET_CLOUD_URL ?? stored.cloudUrl,
+            cloudUrl: stored.cloudUrl,
         };
     },
     set(updates: Partial<WalletConfig>): void {
