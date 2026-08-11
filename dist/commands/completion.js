@@ -76,7 +76,7 @@ compdef _ashgate_completion ashgate
         .command('__complete', { hidden: true })
         .argument('[words...]')
         .action(async (words = []) => {
-        const topLevelCommands = ['auth', 'project', 'status', 'completion', 'init'];
+        const topLevelCommands = ['auth', 'project', 'status', 'completion', 'init', 'doctor'];
         const authCommands = ['login', 'logout', 'status'];
         const projectCommands = ['list', 'create', 'show', 'update', 'delete', 'usage', 'logs'];
         const shellOptions = ['bash', 'zsh'];

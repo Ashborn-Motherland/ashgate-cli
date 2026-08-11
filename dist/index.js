@@ -11,6 +11,7 @@ const auth_1 = require("./commands/auth");
 const project_1 = require("./commands/project");
 const completion_1 = require("./commands/completion");
 const init_1 = require("./commands/init");
+const doctor_1 = require("./commands/doctor");
 const config_1 = require("./config/config");
 const program = new commander_1.Command();
 program
@@ -24,6 +25,7 @@ program
 (0, project_1.registerProjectCommands)(program);
 (0, completion_1.registerCompletionCommands)(program);
 (0, init_1.registerInitCommands)(program);
+(0, doctor_1.registerDoctorCommands)(program);
 // Commande config — afficher l'état de l'authentification
 program
     .command('status')

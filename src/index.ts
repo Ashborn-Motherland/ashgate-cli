@@ -8,6 +8,7 @@ import { registerAuthCommands } from './commands/auth';
 import { registerProjectCommands } from './commands/project';
 import { registerCompletionCommands } from './commands/completion';
 import { registerInitCommands } from './commands/init';
+import { registerDoctorCommands } from './commands/doctor';
 import { walletConfig } from './config/config';
 
 const program = new Command();
@@ -26,6 +27,7 @@ registerAuthCommands(program);
 registerProjectCommands(program);
 registerCompletionCommands(program);
 registerInitCommands(program);
+registerDoctorCommands(program);
 
 // Commande config — afficher l'état de l'authentification
 program
