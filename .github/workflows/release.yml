@@ -1,0 +1,54 @@
+name: Release Ashgate CLI Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Build & Release Cross-Platform Binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build TypeScript
+        run: pnpm build
+
+      - name: Generate Cross-Platform Binaries
+        run: npx pkg . --out-path binaries
+
+      - name: Rename Binaries for Distribution
+        run: |
+          mkdir -p release-binaries
+          mv binaries/ashgate-linux-x64 release-binaries/ashgate-linux-x64
+          mv binaries/ashgate-win-x64.exe release-binaries/ashgate-win-x64.exe
+          mv binaries/ashgate-macos-x64 release-binaries/ashgate-macos-x64
+          mv binaries/ashgate-macos-arm64 release-binaries/ashgate-macos-arm64
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-binaries/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
