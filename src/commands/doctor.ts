@@ -18,7 +18,7 @@ async function checkEndpoint(url: string, name: string): Promise<DiagnosticResul
         const durationMs = Date.now() - start;
         if (response.status >= 200 && response.status < 400) {
             return {
-                category: 'Service Cloud',
+                category: 'Services Ashgate Wallet',
                 title: name,
                 status: 'ok',
                 message: `En ligne (${response.status} OK)`,
@@ -26,7 +26,7 @@ async function checkEndpoint(url: string, name: string): Promise<DiagnosticResul
             };
         } else {
             return {
-                category: 'Service Cloud',
+                category: 'Services Ashgate Wallet',
                 title: name,
                 status: 'warn',
                 message: `Réponse inattendue (HTTP ${response.status})`,
@@ -36,9 +36,8 @@ async function checkEndpoint(url: string, name: string): Promise<DiagnosticResul
     } catch (err: any) {
         const durationMs = Date.now() - start;
         if (err.response) {
-            // Même avec un code d'erreur HTTP (ex: 401/404), le serveur réseau est joignable
             return {
-                category: 'Service Cloud',
+                category: 'Services Ashgate Wallet',
                 title: name,
                 status: 'ok',
                 message: `Joignable (HTTP ${err.response.status})`,
@@ -46,7 +45,7 @@ async function checkEndpoint(url: string, name: string): Promise<DiagnosticResul
             };
         }
         return {
-            category: 'Service Cloud',
+            category: 'Services Ashgate Wallet',
             title: name,
             status: 'fail',
             message: `Injoignable (${err.code || err.message || 'Timeout'})`,
@@ -58,9 +57,9 @@ async function checkEndpoint(url: string, name: string): Promise<DiagnosticResul
 export function registerDoctorCommands(program: Command): void {
     program
         .command('doctor')
-        .description('Diagnostiquer le système, la connexion, l\'authentification et la disponibilité des services Cloud')
+        .description('Diagnostiquer le système, la connexion et les services Ashgate Wallet')
         .action(async () => {
-            console.log(chalk.bold.cyan('\n🩺 Diagnostic complet Ashgate Doctor...'));
+            console.log(chalk.bold.cyan('\n🩺 Diagnostic Ashgate Wallet Doctor...'));
             console.log(chalk.dim('====================================================\n'));
 
             const results: DiagnosticResult[] = [];
@@ -95,20 +94,20 @@ export function registerDoctorCommands(program: Command): void {
                 const configPath = walletConfig.getConfigPath();
                 results.push({
                     category: 'Environnement Système',
-                    title: 'Fichier de configuration local',
+                    title: 'Stockage de configuration',
                     status: 'ok',
                     message: configPath,
                 });
             } catch {
                 results.push({
                     category: 'Environnement Système',
-                    title: 'Fichier de configuration local',
+                    title: 'Stockage de configuration',
                     status: 'warn',
-                    message: 'Impossible de lire le stockage de configuration local',
+                    message: 'Impossible de lire la configuration locale',
                 });
             }
 
-            // 2. VÉRIFICATION DE L'AUTHENTIFICATION & SESSION
+            // 2. VÉRIFICATION DE L'AUTHENTIFICATION & SESSION WALLET
             const tokens = walletConfig.getTokens();
             if (walletConfig.isAuthenticated()) {
                 const msLeft = tokens.refreshExpiresAt - Date.now();
@@ -122,37 +121,35 @@ export function registerDoctorCommands(program: Command): void {
                         : `${minutesLeft}min`;
 
                 results.push({
-                    category: 'Authentification',
+                    category: 'Authentification Wallet',
                     title: 'Session Keycloak SSO',
                     status: 'ok',
                     message: `Connecté (${tokens.email || 'Utilisateur'}, session encore valide ${timeStr})`,
                 });
             } else if (tokens.refreshToken) {
                 results.push({
-                    category: 'Authentification',
+                    category: 'Authentification Wallet',
                     title: 'Session Keycloak SSO',
                     status: 'warn',
                     message: 'Session expirée. Reconnexion requise (ashgate auth login)',
                 });
             } else {
                 results.push({
-                    category: 'Authentification',
+                    category: 'Authentification Wallet',
                     title: 'Session Keycloak SSO',
                     status: 'warn',
                     message: 'Non connecté. Exécutez : ashgate auth login',
                 });
             }
 
-            // 3. VÉRIFICATION DES SERVICES CLOUD & INFRASTRUCTURE
+            // 3. VÉRIFICATION DES ENDPOINTS UNIQUEMENT WALLET
+            const cloudUrl = walletConfig.get().cloudUrl || 'https://app.ashgateway.com';
             const cloudServices = [
                 { name: 'Keycloak SSO Server', url: 'https://accounts.ashgateway.com/realms/ash/.well-known/openid-configuration' },
-                { name: 'Ashgate Wallet API', url: 'https://api.ashgateway.com' },
-                { name: 'Ash Location / Coin Branché API', url: 'https://location-api.coinbranche.com/health' },
-                { name: 'Meilisearch Search Engine', url: 'https://search.coinbranche.com/health' },
-                { name: 'Spark Parking API', url: 'https://spark-api.ashgateway.com' },
+                { name: 'Ashgate Wallet API', url: cloudUrl },
             ];
 
-            console.log(chalk.bold('🔍 Test de connectivité des services Cloud :'));
+            console.log(chalk.bold('🔍 Test de connectivité des services Ashgate Wallet :'));
             for (const service of cloudServices) {
                 const res = await checkEndpoint(service.url, service.name);
                 results.push(res);
@@ -190,11 +187,11 @@ export function registerDoctorCommands(program: Command): void {
             // 5. RÉSUMÉ ET RECOMMANDATIONS
             console.log(chalk.dim('\n===================================================='));
             if (totalFail === 0 && totalWarn === 0) {
-                console.log(chalk.bold.green('🎉 Diagnostic parfait ! Tout le système et les services Cloud sont 100% opérationnels.\n'));
+                console.log(chalk.bold.green('🎉 Diagnostic Ashgate Wallet réussi ! Tout est opérationnel.\n'));
             } else if (totalFail === 0) {
                 console.log(chalk.bold.yellow(`⚠️  Système opérationnel avec ${totalWarn} avertissement(s).\n`));
             } else {
-                console.log(chalk.bold.red(`❌ Diagnostic avec ${totalFail} échec(s) et ${totalWarn} avertissement(s). Veuillez vérifier vos services.\n`));
+                console.log(chalk.bold.red(`❌ Diagnostic avec ${totalFail} échec(s) et ${totalWarn} avertissement(s). Veuillez vérifier la connexion.\n`));
             }
         });
 }
