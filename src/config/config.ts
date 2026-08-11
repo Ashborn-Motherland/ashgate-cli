@@ -2,6 +2,7 @@ import Configstore from 'configstore';
 
 export interface WalletConfig {
     cloudUrl: string;
+    realm?: string;
 }
 
 export interface TokenStore {

@@ -62,6 +62,7 @@ export async function loginWithKeycloak(): Promise<void> {
             const returnedState = url.searchParams.get('state');
 
             if (returnedState !== state) {
+                res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
                 res.end('<h2>❌ State mismatch — sécurité compromise</h2>');
                 clearTimeout(timeout);
                 server.close();
@@ -70,6 +71,7 @@ export async function loginWithKeycloak(): Promise<void> {
             }
 
             if (!returnedCode) {
+                res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
                 res.end('<h2>❌ Code manquant dans le callback</h2>');
                 clearTimeout(timeout);
                 server.close();
@@ -77,12 +79,20 @@ export async function loginWithKeycloak(): Promise<void> {
                 return;
             }
 
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(`
-        <html><body style="font-family:sans-serif;text-align:center;padding:60px">
-        <h2>✅ Authentification réussie !</h2>
-        <p>Vous pouvez fermer cette fenêtre et revenir au terminal.</p>
-        </body></html>
-      `);
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Authentification réussie</title>
+</head>
+<body style="text-align: center; font-family: sans-serif; padding-top: 50px;">
+    <h1>✅ Authentification réussie !</h1>
+    <p>Vous pouvez fermer cette fenêtre et revenir au terminal.</p>
+</body>
+</html>
+            `);
             clearTimeout(timeout);
             server.close();
             resolve(returnedCode);
