@@ -1,6 +1,10 @@
-# ashgate-cli
+# Ashgate CLI
 
-> Interface en ligne de commande officielle pour l'écosystème AshGateway.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Release](https://img.shields.io/github/v/release/Ashborn-Motherland/ashgate-cli)](https://github.com/Ashborn-Motherland/ashgate-cli/releases/latest)
+[![Build Status](https://github.com/Ashborn-Motherland/ashgate-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Ashborn-Motherland/ashgate-cli/actions)
+
+> Interface en ligne de commande officielle et Open Source pour l'écosystème AshGateway.
 
 ---
 
@@ -28,7 +32,7 @@ Téléchargez l'exécutable adapté à votre système d'exploitation depuis la d
 ## 🚀 Commandes Principales
 
 ```bash
-# Diagnostic complet de la CLI et des services distants
+# Bilan de santé système et connectivité des API
 ashgate doctor
 
 # Connexion sécurisée SSO Keycloak
@@ -37,7 +41,7 @@ ashgate auth login
 # Tester ou générer un paiement direct avec QR Code dans le terminal
 ashgate pay --amount 5000 --currency XOF --email client@example.com --provider fedapay
 
-# Détecter le projet local (Nuxt, Vue, Next, React, Flutter) et générer le code de paiement
+# Détecter le projet local (Nuxt 3, Vue 3, Next.js, React, Flutter) et générer le code de paiement
 ashgate init
 
 # Désinstaller la CLI et supprimer les données locales
@@ -46,6 +50,18 @@ ashgate uninstall
 
 ---
 
-## 📄 Licence
+## 🤝 Contributing
 
-Propriété exclusive de la plateforme Ashborn / AshGateway. Tous droits réservés.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+
+---
+
+## 🔒 Security
+
+For vulnerability disclosures, please review our [SECURITY.md](SECURITY.md) policy.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.
