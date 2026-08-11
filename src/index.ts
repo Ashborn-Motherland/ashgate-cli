@@ -10,6 +10,7 @@ import { registerCompletionCommands } from './commands/completion';
 import { registerInitCommands } from './commands/init';
 import { registerDoctorCommands } from './commands/doctor';
 import { registerPayCommands } from './commands/pay';
+import { registerUninstallCommands } from './commands/uninstall';
 import { walletConfig } from './config/config';
 
 const program = new Command();
@@ -30,6 +31,7 @@ registerCompletionCommands(program);
 registerInitCommands(program);
 registerDoctorCommands(program);
 registerPayCommands(program);
+registerUninstallCommands(program);
 
 // Commande config — afficher l'état de l'authentification
 program
