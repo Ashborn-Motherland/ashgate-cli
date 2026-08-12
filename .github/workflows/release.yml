@@ -36,7 +36,7 @@ jobs:
       - name: Generate Cross-Platform Binaries
         run: |
           mkdir -p release-binaries
-          npx pkg . -o release-binaries/ashgate
+          npx pkg . --targets node18-linux-x64,node18-win-x64,node18-macos-x64,node18-macos-arm64 -o release-binaries/ashgate
           ls -la release-binaries/
 
       - name: Publish GitHub Release
