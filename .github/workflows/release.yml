@@ -34,15 +34,10 @@ jobs:
         run: pnpm build
 
       - name: Generate Cross-Platform Binaries
-        run: npx pkg . --out-path binaries
-
-      - name: Rename Binaries for Distribution
         run: |
           mkdir -p release-binaries
-          mv binaries/ashgate-linux-x64 release-binaries/ashgate-linux-x64
-          mv binaries/ashgate-win-x64.exe release-binaries/ashgate-win-x64.exe
-          mv binaries/ashgate-macos-x64 release-binaries/ashgate-macos-x64
-          mv binaries/ashgate-macos-arm64 release-binaries/ashgate-macos-arm64
+          npx pkg . -o release-binaries/ashgate
+          ls -la release-binaries/
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
