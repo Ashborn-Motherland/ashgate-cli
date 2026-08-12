@@ -63,7 +63,7 @@ export async function loginWithKeycloak(): Promise<void> {
 
             if (returnedState !== state) {
                 res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end('<h2>❌ State mismatch — sécurité compromise</h2>');
+                res.end('<h2>State mismatch — sécurité compromise</h2>');
                 clearTimeout(timeout);
                 server.close();
                 reject(new Error('OAuth state mismatch'));
@@ -72,7 +72,7 @@ export async function loginWithKeycloak(): Promise<void> {
 
             if (!returnedCode) {
                 res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end('<h2>❌ Code manquant dans le callback</h2>');
+                res.end('<h2>Code manquant dans le callback</h2>');
                 clearTimeout(timeout);
                 server.close();
                 reject(new Error('No code in callback'));
@@ -82,7 +82,7 @@ export async function loginWithKeycloak(): Promise<void> {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(`
     <div style="text-align: center; font-family: sans-serif; margin-top: 50px;">
-      <h1>✅ Authentification réussie !</h1>
+      <h1>Authentification réussie !</h1>
       <p>Vous pouvez fermer cette fenêtre et revenir au terminal.</p>
     </div>
   `);

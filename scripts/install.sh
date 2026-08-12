@@ -9,17 +9,17 @@ set -e
 REPO="Ashborn-Motherland/ashgate-cli"
 SERVER_URL="https://api.ashgateway.com/cli"
 
-echo "🚀 Installation de Ashgate CLI..."
+echo "[INFO] Installation de Ashgate CLI..."
 
 # 1. Vérification / Installation de Node.js si nécessaire
 if ! command -v node >/dev/null 2>&1; then
-  echo "ℹ️ Node.js non détecté. Installation de Node.js..."
+  echo "[INFO] Node.js non détecté. Installation de Node.js..."
   if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update -qq && sudo apt-get install -y nodejs
   elif command -v brew >/dev/null 2>&1; then
     brew install node
   else
-    echo "❌ Veuillez installer Node.js v18+ pour continuer (https://nodejs.org)."
+    echo "[FAIL] Veuillez installer Node.js v18+ pour continuer (https://nodejs.org)."
     exit 1
   fi
 fi
@@ -43,9 +43,9 @@ TMP_JS="/tmp/ashgate.js"
 PRIMARY_URL="${SERVER_URL}/ashgate.js"
 FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/ashgate.js"
 
-# 3. Téléchargement du bundle JS optimisé (800 KB en ~0.2 seconde)
+# 3. Téléchargement du bundle JS optimisé
 if ! curl -fsSL "$PRIMARY_URL" -o "$TMP_JS" 2>/dev/null; then
-  echo "ℹ️ Téléchargement du bundle via le miroir GitHub..."
+  echo "[INFO] Téléchargement du bundle via le miroir GitHub..."
   curl -fsSL "$FALLBACK_URL" -o "$TMP_JS"
 fi
 
@@ -69,6 +69,6 @@ else
 fi
 
 echo "===================================================="
-echo "✅ Ashgate CLI installé avec succès dans ${BIN_DIR}/ashgate !"
+echo "[OK] Ashgate CLI installé avec succès dans ${BIN_DIR}/ashgate !"
 echo "===================================================="
 echo "Exécutez 'ashgate doctor' pour vérifier votre installation."

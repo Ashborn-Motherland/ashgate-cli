@@ -37,7 +37,7 @@ export function registerInitCommands(program: Command): void {
         .description('Détecter le projet local, configurer les clés et installer les composants de paiement')
         .action(async () => {
             try {
-                console.log(chalk.bold.cyan('\n🚀 Initialisation d\'Ash Gateway dans votre projet local...'));
+                console.log(chalk.bold.cyan('\nInitialisation d\'Ash Gateway dans votre projet local...'));
 
             const cwd = process.cwd();
             let detectedType: 'flutter' | 'nuxt' | 'vue' | 'next' | 'react' | 'express' | 'rails' | null = null;
@@ -1001,7 +1001,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: '🚀 Ashgate Checkout'),
+      home: const MyHomePage(title: 'Ashgate Checkout'),
     );
   }
 }

@@ -10357,7 +10357,7 @@ async function loginWithKeycloak() {
             const returnedState = url.searchParams.get('state');
             if (returnedState !== state) {
                 res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end('<h2>❌ State mismatch — sécurité compromise</h2>');
+                res.end('<h2>State mismatch — sécurité compromise</h2>');
                 clearTimeout(timeout);
                 server.close();
                 reject(new Error('OAuth state mismatch'));
@@ -10365,7 +10365,7 @@ async function loginWithKeycloak() {
             }
             if (!returnedCode) {
                 res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end('<h2>❌ Code manquant dans le callback</h2>');
+                res.end('<h2>Code manquant dans le callback</h2>');
                 clearTimeout(timeout);
                 server.close();
                 reject(new Error('No code in callback'));
@@ -10374,7 +10374,7 @@ async function loginWithKeycloak() {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(`
     <div style="text-align: center; font-family: sans-serif; margin-top: 50px;">
-      <h1>✅ Authentification réussie !</h1>
+      <h1>Authentification réussie !</h1>
       <p>Vous pouvez fermer cette fenêtre et revenir au terminal.</p>
     </div>
   `);
@@ -10909,7 +10909,7 @@ function registerInitCommands(program) {
         .description('Détecter le projet local, configurer les clés et installer les composants de paiement')
         .action(async () => {
         try {
-            console.log(chalk_1.default.bold.cyan('\n🚀 Initialisation d\'Ash Gateway dans votre projet local...'));
+            console.log(chalk_1.default.bold.cyan('\nInitialisation d\'Ash Gateway dans votre projet local...'));
             const cwd = process.cwd();
             let detectedType = null;
             let projectPath = cwd;
@@ -11873,7 +11873,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: '🚀 Ashgate Checkout'),
+      home: const MyHomePage(title: 'Ashgate Checkout'),
     );
   }
 }
