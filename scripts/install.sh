@@ -2,75 +2,73 @@
 set -e
 
 # =======================================================
-# Script d'installation automatique pour Ashgate CLI
+# Script d'installation automatique ultra-rapide pour Ashgate CLI
 # Usage: curl -fsSL https://ashgateway.com/install.sh | bash
 # =======================================================
 
 REPO="Ashborn-Motherland/ashgate-cli"
 SERVER_URL="https://api.ashgateway.com/cli"
 
-OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-ARCH="$(uname -m)"
+echo "🚀 Installation de Ashgate CLI..."
 
-case "$OS" in
-  linux*)   
-    PLATFORM="linux-x64" 
-    BINARY_FILE="ashgate-linux-x64"
-    ;;
-  darwin*)
-    if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
-      PLATFORM="macos-arm64"
-      BINARY_FILE="ashgate-macos-arm64"
-    else
-      PLATFORM="macos-x64"
-      BINARY_FILE="ashgate-macos-x64"
-    fi
-    ;;
-  msys*|mingw*|cygwin*) 
-    PLATFORM="win-x64"
-    BINARY_FILE="ashgate-win-x64.exe"
-    ;;
-  *)
-    echo "❌ Système d'exploitation non supporté : $OS ($ARCH)"
-    exit 1
-    ;;
-esac
-
-PRIMARY_URL="${SERVER_URL}/binaries/${BINARY_FILE}"
-FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/${BINARY_FILE}"
-
-echo "🚀 Téléchargement de Ashgate CLI (${PLATFORM})..."
-
-DEST_DIR="/usr/local/bin"
-USE_SUDO=0
-
-if [ ! -w "$DEST_DIR" ]; then
-  if command -v sudo >/dev/null 2>&1; then
-    USE_SUDO=1
+# 1. Vérification / Installation de Node.js si nécessaire
+if ! command -v node >/dev/null 2>&1; then
+  echo "ℹ️ Node.js non détecté. Installation de Node.js..."
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -qq && sudo apt-get install -y nodejs
+  elif command -v brew >/dev/null 2>&1; then
+    brew install node
   else
-    DEST_DIR="$HOME/.local/bin"
-    mkdir -p "$DEST_DIR"
+    echo "❌ Veuillez installer Node.js v18+ pour continuer (https://nodejs.org)."
+    exit 1
   fi
 fi
 
-TARGET_PATH="${DEST_DIR}/ashgate"
-TMP_FILE="/tmp/ashgate_binary_download"
+# 2. Emplacements Cibles
+LIB_DIR="/usr/local/lib/ashgate"
+BIN_DIR="/usr/local/bin"
+USE_SUDO=0
 
-# Tentative de téléchargement depuis le serveur AshGateway, sinon fallback GitHub
-if ! curl -fsSL "$PRIMARY_URL" -o "$TMP_FILE" 2>/dev/null; then
-  echo "ℹ️ Téléchargement via le miroir GitHub Releases..."
-  curl -fsSL "$FALLBACK_URL" -o "$TMP_FILE"
+if [ ! -w "$BIN_DIR" ] || [ ! -w "/usr/local/lib" ]; then
+  if command -v sudo >/dev/null 2>&1; then
+    USE_SUDO=1
+  else
+    LIB_DIR="$HOME/.local/lib/ashgate"
+    BIN_DIR="$HOME/.local/bin"
+    mkdir -p "$LIB_DIR" "$BIN_DIR"
+  fi
 fi
 
-chmod +x "$TMP_FILE"
+TMP_JS="/tmp/ashgate.js"
+PRIMARY_URL="${SERVER_URL}/ashgate.js"
+FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/ashgate.js"
+
+# 3. Téléchargement du bundle JS optimisé (800 KB en ~0.2 seconde)
+if ! curl -fsSL "$PRIMARY_URL" -o "$TMP_JS" 2>/dev/null; then
+  echo "ℹ️ Téléchargement du bundle via le miroir GitHub..."
+  curl -fsSL "$FALLBACK_URL" -o "$TMP_JS"
+fi
+
+TMP_LAUNCHER="/tmp/ashgate_launcher"
+cat << 'EOF' > "$TMP_LAUNCHER"
+#!/bin/sh
+exec node /usr/local/lib/ashgate/ashgate.js "$@"
+EOF
 
 if [ "$USE_SUDO" -eq 1 ]; then
-  sudo mv "$TMP_FILE" "$TARGET_PATH"
+  sudo mkdir -p "$LIB_DIR" "$BIN_DIR"
+  sudo mv "$TMP_JS" "$LIB_DIR/ashgate.js"
+  sudo mv "$TMP_LAUNCHER" "$BIN_DIR/ashgate"
+  sudo chmod +x "$BIN_DIR/ashgate"
 else
-  mv "$TMP_FILE" "$TARGET_PATH"
+  mkdir -p "$LIB_DIR" "$BIN_DIR"
+  sed -i "s|/usr/local/lib/ashgate|$LIB_DIR|g" "$TMP_LAUNCHER" 2>/dev/null || true
+  mv "$TMP_JS" "$LIB_DIR/ashgate.js"
+  mv "$TMP_LAUNCHER" "$BIN_DIR/ashgate"
+  chmod +x "$BIN_DIR/ashgate"
 fi
 
 echo "===================================================="
-echo "✅ Ashgate CLI installé avec succès dans ${TARGET_PATH} !"
+echo "✅ Ashgate CLI installé avec succès dans ${BIN_DIR}/ashgate !"
 echo "===================================================="
 echo "Exécutez 'ashgate doctor' pour vérifier votre installation."

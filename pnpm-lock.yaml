@@ -48,9 +48,15 @@ importers:
       '@types/qrcode-terminal':
         specifier: ^0.12.2
         version: 0.12.2
+      '@vercel/ncc':
+        specifier: ^0.44.1
+        version: 0.44.1
       '@yao-pkg/pkg':
         specifier: ^6.22.0
         version: 6.22.0
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.19.13)(typescript@5.9.3)
@@ -314,6 +320,10 @@ packages:
 
   '@types/through@0.0.33':
     resolution: {integrity: sha512-HsJ+z3QuETzP3cswwtzt2vEIiHBk/dCcHGhbmG5X3ecnwFD/lPrMpliGXxSCg03L9AhrdwA4Oz/qfspkDW+xGQ==}
+
+  '@vercel/ncc@0.44.1':
+    resolution: {integrity: sha512-cUjIE5P2YY1n+Kt9rFIazMMpGoPn1Fic04rOmTkElMkiDP5oszGfERMpo2shVkFKDL7rVppdM2pqJKC59shQWQ==}
+    hasBin: true
 
   '@yao-pkg/pkg-fetch@3.6.5':
     resolution: {integrity: sha512-Sd1Hff7imsF2rcZ2GLQuIzVm2fc3Za+nE4KSWPTwIYegN/r90UFg3bq0MLSugbWQaVht72zzxV0MiKE0wvT1zA==}
@@ -1173,6 +1183,8 @@ snapshots:
   '@types/through@0.0.33':
     dependencies:
       '@types/node': 22.19.13
+
+  '@vercel/ncc@0.44.1': {}
 
   '@yao-pkg/pkg-fetch@3.6.5':
     dependencies:

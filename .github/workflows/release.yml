@@ -1,4 +1,4 @@
-name: Release Ashgate CLI Binaries
+name: Release Ashgate CLI
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   release:
-    name: Build & Release Cross-Platform Binaries
+    name: Build & Release Ultra-Fast Bundle
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -30,14 +30,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build TypeScript
+      - name: Build Ultra-Fast Bundle (ncc)
         run: pnpm build
 
-      - name: Generate Cross-Platform Binaries
+      - name: Prepare Release Artifacts
         run: |
           mkdir -p release-binaries
-          npx pkg . --targets node18-linux-x64,node18-win-x64,node18-macos-x64,node18-macos-arm64 -o release-binaries/ashgate
-          ls -la release-binaries/
+          cp bundle/index.js release-binaries/ashgate.js
+          cp scripts/install.sh release-binaries/install.sh
+          ls -lh release-binaries/
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

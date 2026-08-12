@@ -16,10 +16,10 @@
     "outputPath": "binaries"
   },
   "scripts": {
-    "build": "tsc",
-    "build:binaries": "pkg .",
+    "build": "tsc && ncc build src/index.ts -o bundle",
+    "bundle": "ncc build src/index.ts -o bundle",
     "dev": "ts-node src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node bundle/index.js",
     "lint": "eslint src --ext .ts",
     "prepublishOnly": "npm run build"
   },
@@ -43,7 +43,9 @@
     "@types/node": "^22.0.0",
     "@types/open": "^6.1.0",
     "@types/qrcode-terminal": "^0.12.2",
+    "@vercel/ncc": "^0.44.1",
     "@yao-pkg/pkg": "^6.22.0",
+    "esbuild": "^0.28.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.0"
   },
