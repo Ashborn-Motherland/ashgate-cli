@@ -3,10 +3,11 @@ set -e
 
 # =======================================================
 # Script d'installation automatique pour Ashgate CLI
-# Usage: curl -fsSL https://raw.githubusercontent.com/Ashborn-Motherland/ashgate-cli/main/scripts/install.sh | sh
+# Usage: curl -fsSL https://ashgateway.com/install.sh | bash
 # =======================================================
 
 REPO="Ashborn-Motherland/ashgate-cli"
+SERVER_URL="https://api.ashgateway.com/cli"
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
@@ -35,7 +36,8 @@ case "$OS" in
     ;;
 esac
 
-DOWNLOAD_URL="https://github.com/${REPO}/releases/latest/download/${BINARY_FILE}"
+PRIMARY_URL="${SERVER_URL}/binaries/${BINARY_FILE}"
+FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/${BINARY_FILE}"
 
 echo "🚀 Téléchargement de Ashgate CLI (${PLATFORM})..."
 
@@ -54,7 +56,12 @@ fi
 TARGET_PATH="${DEST_DIR}/ashgate"
 TMP_FILE="/tmp/ashgate_binary_download"
 
-curl -fsSL "$DOWNLOAD_URL" -o "$TMP_FILE"
+# Tentative de téléchargement depuis le serveur AshGateway, sinon fallback GitHub
+if ! curl -fsSL "$PRIMARY_URL" -o "$TMP_FILE" 2>/dev/null; then
+  echo "ℹ️ Téléchargement via le miroir GitHub Releases..."
+  curl -fsSL "$FALLBACK_URL" -o "$TMP_FILE"
+fi
+
 chmod +x "$TMP_FILE"
 
 if [ "$USE_SUDO" -eq 1 ]; then

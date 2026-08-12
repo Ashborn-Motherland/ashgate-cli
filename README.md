@@ -8,24 +8,11 @@
 
 ---
 
-## ⚡ Installation Rapide
-
-### 1. Script d'installation automatique (Linux / macOS)
+## ⚡ Installation Rapide (One-Liner)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Ashborn-Motherland/ashgate-cli/main/scripts/install.sh | sh
+curl -fsSL https://ashgateway.com/install.sh | bash
 ```
-
-### 2. Téléchargement des Binaires précompilés (Sans Node.js)
-
-Téléchargez l'exécutable adapté à votre système d'exploitation depuis la dernière version :
-
-👉 **[Télécharger Ashgate CLI sur GitHub Releases](https://github.com/Ashborn-Motherland/ashgate-cli/releases/latest)**
-
-- **Linux x64** : `ashgate-linux-x64`
-- **Windows x64** : `ashgate-win-x64.exe`
-- **macOS (Apple Silicon M1/M2/M3)** : `ashgate-macos-arm64`
-- **macOS (Intel)** : `ashgate-macos-x64`
 
 ---
 
