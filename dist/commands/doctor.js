@@ -10,7 +10,10 @@ const config_1 = require("../config/config");
 async function checkEndpoint(url, name) {
     const start = Date.now();
     try {
-        const response = await axios_1.default.get(url, { timeout: 5000 });
+        const response = await axios_1.default.get(url, {
+            timeout: 10000,
+            headers: { 'User-Agent': 'Ashgate-CLI/3.0.0' }
+        });
         const durationMs = Date.now() - start;
         if (response.status >= 200 && response.status < 400) {
             return {
