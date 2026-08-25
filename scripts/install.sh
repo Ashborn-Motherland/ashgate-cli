@@ -41,12 +41,15 @@ fi
 
 TMP_JS="/tmp/ashgate.js"
 PRIMARY_URL="${SERVER_URL}/ashgate.js"
+RAW_URL="https://raw.githubusercontent.com/${REPO}/main/bundle/index.js"
 FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/ashgate.js"
 
 # 3. Téléchargement du bundle JS optimisé
 if ! curl -fsSL "$PRIMARY_URL" -o "$TMP_JS" 2>/dev/null; then
-  echo "[INFO] Téléchargement du bundle via le miroir GitHub..."
-  curl -fsSL "$FALLBACK_URL" -o "$TMP_JS"
+  if ! curl -fsSL "$RAW_URL" -o "$TMP_JS" 2>/dev/null; then
+    echo "[INFO] Téléchargement du bundle via le miroir GitHub..."
+    curl -fsSL "$FALLBACK_URL" -o "$TMP_JS"
+  fi
 fi
 
 TMP_LAUNCHER="/tmp/ashgate_launcher"
