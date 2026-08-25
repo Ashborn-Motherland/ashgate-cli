@@ -11093,6 +11093,36 @@ function registerInitCommands(program) {
                     feexpayShopId = await askQuestion('Entrez votre Shop ID FeexPay : ');
                 }
             }
+            // Configuration interactive du mode de notification d'événements
+            console.log(chalk_1.default.cyan('\nConfiguration du mode de notification des événements :'));
+            console.log('  1. Webhook HTTP POST (Serveur à Serveur)');
+            console.log('  2. WebSocket WSS Realtime (Client léger / App Mobile temps réel)');
+            console.log('  3. Hybride : Webhook + WebSocket (Recommandé - Validation BDD + UX Directe) [défaut]');
+            const notificationSelection = await askQuestion('Choisissez le mode de notification (1-3) [3 par défaut] : ');
+            let notificationMode = 'both';
+            if (notificationSelection === '1') {
+                notificationMode = 'webhook';
+            }
+            else if (notificationSelection === '2') {
+                notificationMode = 'websocket';
+            }
+            let webhookUrlInput = '';
+            if (['webhook', 'both'].includes(notificationMode)) {
+                webhookUrlInput = await askQuestion('URL Webhook Client (optionnelle, ex: https://mon-app.com/api/webhooks/ashgate) : ');
+            }
+            if (projectSlug) {
+                try {
+                    const updatePayload = { notificationMode };
+                    if (webhookUrlInput.trim()) {
+                        updatePayload.webhookUrl = webhookUrlInput.trim();
+                    }
+                    await client_1.apiClient.patch(`/projects/${projectSlug}`, updatePayload);
+                    console.log(chalk_1.default.green(`✓ Mode de notification [${notificationMode}] configuré sur le projet "${projectSlug}".`));
+                }
+                catch (e) {
+                    // Ignore error if offline
+                }
+            }
             // 3. ÉCRITURE DES CONFIGURATIONS ET COMPOSANTS
             try {
                 if (detectedType === 'flutter') {
@@ -13181,6 +13211,7 @@ function registerProjectCommands(program) {
         .requiredOption('-n, --name <name>', 'Nom du projet')
         .requiredOption('-s, --slug <slug>', 'Slug unique (URL-safe)')
         .option('-b, --billing-mode <billingMode>', 'Mode de facturation (none, subscription, commission)', 'none')
+        .option('-m, --notification-mode <notificationMode>', 'Mode de notification (webhook, websocket, both)', 'webhook')
         .option('-c, --commission-rate <rate>', 'Taux de commission (%)', parseFloat)
         .option('-w, --webhook-url <webhookUrl>', 'URL de notification (webhook) de destination')
         .option('--sandbox-key <sandboxApiKey>', 'Clé API FedaPay Sandbox')
@@ -13200,6 +13231,7 @@ function registerProjectCommands(program) {
             console.log(chalk_1.default.green(`\n✓ Projet créé avec succès !`));
             console.log(`  Nom  : ${response.data.name}`);
             console.log(`  Slug : ${response.data.slug}`);
+            console.log(`  Mode Notification : ${response.data.notificationMode || 'webhook'}`);
             console.log(`  Clé Publique  : ${response.data.publicKey}`);
             console.log(`  Clé Secrète   : ${response.data.secretKey}\n`);
         }
@@ -13221,6 +13253,7 @@ function registerProjectCommands(program) {
             console.log(`  ID            : ${p._id || p.id}`);
             console.log(`  Slug          : ${p.slug}`);
             console.log(`  Billing Mode  : ${p.billingMode || 'none'}`);
+            console.log(`  Notif Mode    : ${p.notificationMode || 'webhook'}`);
             if (p.billingMode === 'commission') {
                 console.log(`  Commission    : ${p.commissionRate || 0}%`);
             }
@@ -13250,6 +13283,7 @@ function registerProjectCommands(program) {
         .description('Mettre à jour la configuration d\'un projet')
         .option('-n, --name <name>', 'Nom du projet')
         .option('-b, --billing-mode <billingMode>', 'Mode de facturation (none, subscription, commission)')
+        .option('-m, --notification-mode <notificationMode>', 'Mode de notification (webhook, websocket, both)')
         .option('-c, --commission-rate <rate>', 'Taux de commission (%)', parseFloat)
         .option('-w, --webhook-url <webhookUrl>', 'URL de notification (webhook)')
         .option('--sandbox-key <sandboxApiKey>', 'Clé API FedaPay Sandbox')

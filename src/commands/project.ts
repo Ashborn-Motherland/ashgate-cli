@@ -126,6 +126,7 @@ export function registerProjectCommands(program: Command): void {
         .requiredOption('-n, --name <name>', 'Nom du projet')
         .requiredOption('-s, --slug <slug>', 'Slug unique (URL-safe)')
         .option('-b, --billing-mode <billingMode>', 'Mode de facturation (none, subscription, commission)', 'none')
+        .option('-m, --notification-mode <notificationMode>', 'Mode de notification (webhook, websocket, both)', 'webhook')
         .option('-c, --commission-rate <rate>', 'Taux de commission (%)', parseFloat)
         .option('-w, --webhook-url <webhookUrl>', 'URL de notification (webhook) de destination')
         .option('--sandbox-key <sandboxApiKey>', 'Clé API FedaPay Sandbox')
@@ -145,6 +146,7 @@ export function registerProjectCommands(program: Command): void {
                 console.log(chalk.green(`\n✓ Projet créé avec succès !`));
                 console.log(`  Nom  : ${response.data.name}`);
                 console.log(`  Slug : ${response.data.slug}`);
+                console.log(`  Mode Notification : ${response.data.notificationMode || 'webhook'}`);
                 console.log(`  Clé Publique  : ${response.data.publicKey}`);
                 console.log(`  Clé Secrète   : ${response.data.secretKey}\n`);
             } catch (err: any) {
@@ -167,6 +169,7 @@ export function registerProjectCommands(program: Command): void {
                 console.log(`  ID            : ${p._id || p.id}`);
                 console.log(`  Slug          : ${p.slug}`);
                 console.log(`  Billing Mode  : ${p.billingMode || 'none'}`);
+                console.log(`  Notif Mode    : ${p.notificationMode || 'webhook'}`);
                 if (p.billingMode === 'commission') {
                     console.log(`  Commission    : ${p.commissionRate || 0}%`);
                 }
@@ -197,6 +200,7 @@ export function registerProjectCommands(program: Command): void {
         .description('Mettre à jour la configuration d\'un projet')
         .option('-n, --name <name>', 'Nom du projet')
         .option('-b, --billing-mode <billingMode>', 'Mode de facturation (none, subscription, commission)')
+        .option('-m, --notification-mode <notificationMode>', 'Mode de notification (webhook, websocket, both)')
         .option('-c, --commission-rate <rate>', 'Taux de commission (%)', parseFloat)
         .option('-w, --webhook-url <webhookUrl>', 'URL de notification (webhook)')
         .option('--sandbox-key <sandboxApiKey>', 'Clé API FedaPay Sandbox')

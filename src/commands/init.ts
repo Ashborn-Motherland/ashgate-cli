@@ -212,6 +212,37 @@ export function registerInitCommands(program: Command): void {
                 }
             }
 
+            // Configuration interactive du mode de notification d'événements
+            console.log(chalk.cyan('\nConfiguration du mode de notification des événements :'));
+            console.log('  1. Webhook HTTP POST (Serveur à Serveur)');
+            console.log('  2. WebSocket WSS Realtime (Client léger / App Mobile temps réel)');
+            console.log('  3. Hybride : Webhook + WebSocket (Recommandé - Validation BDD + UX Directe) [défaut]');
+            const notificationSelection = await askQuestion('Choisissez le mode de notification (1-3) [3 par défaut] : ');
+            let notificationMode: 'webhook' | 'websocket' | 'both' = 'both';
+            if (notificationSelection === '1') {
+                notificationMode = 'webhook';
+            } else if (notificationSelection === '2') {
+                notificationMode = 'websocket';
+            }
+
+            let webhookUrlInput = '';
+            if (['webhook', 'both'].includes(notificationMode)) {
+                webhookUrlInput = await askQuestion('URL Webhook Client (optionnelle, ex: https://mon-app.com/api/webhooks/ashgate) : ');
+            }
+
+            if (projectSlug) {
+                try {
+                    const updatePayload: any = { notificationMode };
+                    if (webhookUrlInput.trim()) {
+                        updatePayload.webhookUrl = webhookUrlInput.trim();
+                    }
+                    await apiClient.patch(`/projects/${projectSlug}`, updatePayload);
+                    console.log(chalk.green(`✓ Mode de notification [${notificationMode}] configuré sur le projet "${projectSlug}".`));
+                } catch (e: any) {
+                    // Ignore error if offline
+                }
+            }
+
             // 3. ÉCRITURE DES CONFIGURATIONS ET COMPOSANTS
             try {
                 if (detectedType === 'flutter') {
