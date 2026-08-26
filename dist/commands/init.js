@@ -1726,7 +1726,87 @@ const handlePay = async () => {
                         fs_1.default.mkdirSync(compDir, { recursive: true });
                     if (!fs_1.default.existsSync(composablesDir))
                         fs_1.default.mkdirSync(composablesDir, { recursive: true });
-                    const composableVue = `import { ref } from 'vue';
+                    const isTs = fs_1.default.existsSync(path_1.default.join(projectPath, 'tsconfig.json')) || fs_1.default.existsSync(path_1.default.join(projectPath, 'tsconfig.app.json'));
+                    const composableVueTs = `import { ref } from 'vue';
+
+export interface CheckoutParams {
+  provider?: string;
+  amount: number;
+  currency?: string;
+  email?: string;
+  firstname?: string;
+  lastname?: string;
+  phoneNumber?: string;
+  description?: string;
+  operator?: string;
+}
+
+export function useAshgatePayment() {
+  const isProcessing = ref<boolean>(false);
+  const paymentUrl = ref<string | null>(null);
+  const error = ref<string | null>(null);
+
+  const initCheckout = async (params: CheckoutParams) => {
+    isProcessing.value = true;
+    error.value = null;
+    paymentUrl.value = null;
+
+    const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
+    const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
+
+    const provider = (params.provider || 'fedapay').toLowerCase();
+    const endpoint = provider === 'feexpay'
+      ? \`\${apiUrl}/feexpay/payin\`
+      : \`\${apiUrl}/fedapay/direct-payment\`;
+
+    const payload = provider === 'feexpay'
+      ? {
+          network: params.operator || 'mtn',
+          amount: params.amount,
+          phoneNumber: params.phoneNumber,
+          fullname: \`\${params.firstname || ''} \${params.lastname || ''}\`.trim(),
+          email: params.email,
+          description: params.description || 'Paiement Ashgate',
+        }
+      : {
+          provider: provider,
+          amount: params.amount,
+          currency: params.currency || 'XOF',
+          email: params.email,
+          firstname: params.firstname,
+          lastname: params.lastname,
+          phoneNumber: params.phoneNumber,
+          description: params.description || 'Paiement Ashgate',
+        };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-feda-project-key': projectKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Échec de l’initialisation');
+
+      const url = data.url || data.payment_url;
+      if (url) paymentUrl.value = url;
+      return data;
+    } catch (err: any) {
+      error.value = err.message || 'Erreur lors du paiement';
+      throw err;
+    } finally {
+      isProcessing.value = false;
+    }
+  };
+
+  return { isProcessing, paymentUrl, error, initCheckout };
+}
+`;
+                    const composableVueJs = `import { ref } from 'vue';
 
 export function useAshgatePayment() {
   const isProcessing = ref(false);
@@ -1793,8 +1873,9 @@ export function useAshgatePayment() {
   return { isProcessing, paymentUrl, error, initCheckout };
 }
 `;
-                    fs_1.default.writeFileSync(path_1.default.join(composablesDir, 'useAshgatePayment.js'), composableVue);
-                    console.log(chalk_1.default.green('✓ Composable src/composables/useAshgatePayment.js généré.'));
+                    const fileName = isTs ? 'useAshgatePayment.ts' : 'useAshgatePayment.js';
+                    fs_1.default.writeFileSync(path_1.default.join(composablesDir, fileName), isTs ? composableVueTs : composableVueJs);
+                    console.log(chalk_1.default.green(`✓ Composable src/composables/${fileName} généré.`));
                 }
                 else if (detectedType === 'next') {
                     // --- INTEGRATION NEXT.JS ---
