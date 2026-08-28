@@ -1541,24 +1541,141 @@ class _MyHomePageState extends State<MyHomePage> {
                     fs.writeFileSync(path.join(serverApiDir, 'checkout.post.ts'), serverNitroContent);
                     console.log(chalk.green('✓ Route serveur server/api/ashgate/checkout.post.ts générée.'));
 
-                    // 2. Composable Nuxt 3 : composables/useAshgatePayment.ts
+                    const isTs = fs.existsSync(path.join(projectPath, 'tsconfig.json'));
+                    const routeExt = isTs ? 'ts' : 'js';
+                    const compExt = isTs ? 'ts' : 'js';
+
+                    const serverNitroContentTs = `import { defineEventHandler, readBody, createError } from 'h3';
+
+export default defineEventHandler(async (event) => {
+  const body = await readBody(event);
+  const config = useRuntimeConfig();
+
+  const apiUrl = config.public.ashgateApiUrl || '${cloudUrl}';
+  const projectKey = config.public.ashgateProjectKey || '${projectKey}';
+
+  const provider = (body.provider || 'fedapay').toLowerCase();
+  const endpoint = provider === 'feexpay'
+    ? \`\${apiUrl}/feexpay/payin\`
+    : \`\${apiUrl}/fedapay/direct-payment\`;
+
+  const payload = provider === 'feexpay'
+    ? {
+        network: body.operator || 'mtn',
+        amount: body.amount,
+        phoneNumber: body.phoneNumber,
+        fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
+        email: body.email,
+        description: body.description || 'Paiement Ashgate',
+      }
+    : {
+        provider: provider,
+        amount: body.amount,
+        currency: body.currency || 'XOF',
+        email: body.email,
+        firstname: body.firstname,
+        lastname: body.lastname,
+        phoneNumber: body.phoneNumber,
+        description: body.description || 'Paiement Ashgate',
+      };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-feda-project-key': projectKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw createError({ statusCode: res.status, statusMessage: data.message || 'Échec du paiement' });
+    }
+    return data;
+  } catch (err: any) {
+    throw createError({ statusCode: 500, statusMessage: err.message || 'Erreur interne' });
+  }
+});
+`;
+
+                    const serverNitroContentJs = `import { defineEventHandler, readBody, createError } from 'h3';
+
+export default defineEventHandler(async (event) => {
+  const body = await readBody(event);
+  const config = useRuntimeConfig();
+
+  const apiUrl = config.public.ashgateApiUrl || '${cloudUrl}';
+  const projectKey = config.public.ashgateProjectKey || '${projectKey}';
+
+  const provider = (body.provider || 'fedapay').toLowerCase();
+  const endpoint = provider === 'feexpay'
+    ? \`\${apiUrl}/feexpay/payin\`
+    : \`\${apiUrl}/fedapay/direct-payment\`;
+
+  const payload = provider === 'feexpay'
+    ? {
+        network: body.operator || 'mtn',
+        amount: body.amount,
+        phoneNumber: body.phoneNumber,
+        fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
+        email: body.email,
+        description: body.description || 'Paiement Ashgate',
+      }
+    : {
+        provider: provider,
+        amount: body.amount,
+        currency: body.currency || 'XOF',
+        email: body.email,
+        firstname: body.firstname,
+        lastname: body.lastname,
+        phoneNumber: body.phoneNumber,
+        description: body.description || 'Paiement Ashgate',
+      };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-feda-project-key': projectKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw createError({ statusCode: res.status, statusMessage: data.message || 'Échec du paiement' });
+    }
+    return data;
+  } catch (err) {
+    throw createError({ statusCode: 500, statusMessage: err.message || 'Erreur interne' });
+  }
+});
+`;
+
+                    fs.writeFileSync(path.join(serverApiDir, `checkout.post.${routeExt}`), isTs ? serverNitroContentTs : serverNitroContentJs);
+                    console.log(chalk.green(`✓ Route serveur server/api/ashgate/checkout.post.${routeExt} générée.`));
+
+                    // 2. Composable Nuxt 3 : composables/useAshgatePayment
                     const composablesDir = path.join(projectPath, 'composables');
                     if (!fs.existsSync(composablesDir)) fs.mkdirSync(composablesDir, { recursive: true });
 
-                    const composableContent = `export function useAshgatePayment() {
+                    const composableContentTs = `export function useAshgatePayment() {
   const isProcessing = ref(false);
   const paymentUrl = ref<string | null>(null);
   const error = ref<string | null>(null);
 
   const initCheckout = async (params: {
-    provider: 'fedapay' | 'feexpay' | 'stripe';
+    provider?: 'fedapay' | 'feexpay' | 'stripe' | string;
     amount: number;
     currency?: string;
     email: string;
     firstname?: string;
     lastname?: string;
     phoneNumber?: string;
-    operator?: 'mtn' | 'moov' | 'celtiis';
+    operator?: 'mtn' | 'moov' | 'celtiis' | string;
     description?: string;
   }) => {
     isProcessing.value = true;
@@ -1592,8 +1709,47 @@ class _MyHomePageState extends State<MyHomePage> {
   };
 }
 `;
-                    fs.writeFileSync(path.join(composablesDir, 'useAshgatePayment.ts'), composableContent);
-                    console.log(chalk.green('✓ Composable composables/useAshgatePayment.ts généré.'));
+
+                    const composableContentJs = `export function useAshgatePayment() {
+  const isProcessing = ref(false);
+  const paymentUrl = ref(null);
+  const error = ref(null);
+
+  const initCheckout = async (params) => {
+    isProcessing.value = true;
+    error.value = null;
+    paymentUrl.value = null;
+
+    try {
+      const res = await $fetch('/api/ashgate/checkout', {
+        method: 'POST',
+        body: params,
+      });
+
+      const url = res.url || res.payment_url;
+      if (url) {
+        paymentUrl.value = url;
+      }
+      return res;
+    } catch (err) {
+      error.value = err.statusMessage || err.message || 'Échec du paiement';
+      throw err;
+    } finally {
+      isProcessing.value = false;
+    }
+  };
+
+  return {
+    isProcessing,
+    paymentUrl,
+    error,
+    initCheckout,
+  };
+}
+`;
+
+                    fs.writeFileSync(path.join(composablesDir, `useAshgatePayment.${compExt}`), isTs ? composableContentTs : composableContentJs);
+                    console.log(chalk.green(`✓ Composable composables/useAshgatePayment.${compExt} généré.`));
 
                     // 3. Composant Vue 3 : components/AshgateCheckout.vue
                     const compDir = path.join(projectPath, 'components');
@@ -1886,16 +2042,21 @@ export function useAshgatePayment() {
 
                 } else if (detectedType === 'next') {
                     // --- INTEGRATION NEXT.JS ---
+                    const isTs = fs.existsSync(path.join(projectPath, 'tsconfig.json'));
+                    const routeExt = isTs ? 'ts' : 'js';
+                    const hookExt = isTs ? 'ts' : 'js';
+                    const compExt = isTs ? 'tsx' : 'jsx';
+
                     const envPath = path.join(projectPath, '.env');
                     const envVars = `\nNEXT_PUBLIC_ASHGATE_API_URL=${cloudUrl}\nNEXT_PUBLIC_ASHGATE_PROJECT_KEY=${projectKey}\nNEXT_PUBLIC_ASHGATE_ENV=${environment}\n`;
                     fs.appendFileSync(envPath, envVars);
                     console.log(chalk.green('✓ Fichier .env mis à jour avec NEXT_PUBLIC_ASHGATE.'));
 
-                    // 1. App Router API Route : app/api/ashgate/checkout/route.ts
+                    // 1. App Router API Route : app/api/ashgate/checkout/route
                     const appApiDir = path.join(projectPath, 'app', 'api', 'ashgate', 'checkout');
                     if (!fs.existsSync(appApiDir)) fs.mkdirSync(appApiDir, { recursive: true });
 
-                    const nextRouteContent = `import { NextResponse } from 'next/server';
+                    const nextRouteContentTs = `import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
@@ -1947,14 +2108,68 @@ export async function POST(req: Request) {
   }
 }
 `;
-                    fs.writeFileSync(path.join(appApiDir, 'route.ts'), nextRouteContent);
-                    console.log(chalk.green('✓ Next.js App Router Route app/api/ashgate/checkout/route.ts générée.'));
 
-                    // 2. React Hook : hooks/useAshgatePayment.ts
+                    const nextRouteContentJs = `import { NextResponse } from 'next/server';
+
+export async function POST(req) {
+  try {
+    const body = await req.json();
+    const apiUrl = process.env.NEXT_PUBLIC_ASHGATE_API_URL || '${cloudUrl}';
+    const projectKey = process.env.NEXT_PUBLIC_ASHGATE_PROJECT_KEY || '${projectKey}';
+
+    const provider = (body.provider || 'fedapay').toLowerCase();
+    const endpoint = provider === 'feexpay'
+      ? \`\${apiUrl}/feexpay/payin\`
+      : \`\${apiUrl}/fedapay/direct-payment\`;
+
+    const payload = provider === 'feexpay'
+      ? {
+          network: body.operator || 'mtn',
+          amount: body.amount,
+          phoneNumber: body.phoneNumber,
+          fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
+          email: body.email,
+          description: body.description || 'Paiement Ashgate',
+        }
+      : {
+          provider: provider,
+          amount: body.amount,
+          currency: body.currency || 'XOF',
+          email: body.email,
+          firstname: body.firstname,
+          lastname: body.lastname,
+          phoneNumber: body.phoneNumber,
+          description: body.description || 'Paiement Ashgate',
+        };
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-feda-project-key': projectKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return NextResponse.json({ error: data.message || 'Échec du paiement' }, { status: res.status });
+    }
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message || 'Erreur Interne' }, { status: 500 });
+  }
+}
+`;
+
+                    fs.writeFileSync(path.join(appApiDir, `route.${routeExt}`), isTs ? nextRouteContentTs : nextRouteContentJs);
+                    console.log(chalk.green(`✓ Next.js App Router Route app/api/ashgate/checkout/route.${routeExt} générée.`));
+
+                    // 2. React Hook : hooks/useAshgatePayment
                     const hooksDir = path.join(projectPath, 'hooks');
                     if (!fs.existsSync(hooksDir)) fs.mkdirSync(hooksDir, { recursive: true });
 
-                    const hookContent = `import { useState } from 'react';
+                    const hookContentTs = `import { useState } from 'react';
 
 export function useAshgatePayment() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1962,14 +2177,14 @@ export function useAshgatePayment() {
   const [error, setError] = useState<string | null>(null);
 
   const initCheckout = async (params: {
-    provider: 'fedapay' | 'feexpay' | 'stripe';
+    provider?: 'fedapay' | 'feexpay' | 'stripe' | string;
     amount: number;
     currency?: string;
     email: string;
     firstname?: string;
     lastname?: string;
     phoneNumber?: string;
-    operator?: 'mtn' | 'moov' | 'celtiis';
+    operator?: 'mtn' | 'moov' | 'celtiis' | string;
     description?: string;
   }) => {
     setIsProcessing(true);
@@ -2000,14 +2215,52 @@ export function useAshgatePayment() {
   return { isProcessing, paymentUrl, error, initCheckout };
 }
 `;
-                    fs.writeFileSync(path.join(hooksDir, 'useAshgatePayment.ts'), hookContent);
-                    console.log(chalk.green('✓ React Hook hooks/useAshgatePayment.ts généré.'));
 
-                    // 3. React Component : components/AshgateCheckout.tsx
+                    const hookContentJs = `import { useState } from 'react';
+
+export function useAshgatePayment() {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  const initCheckout = async (params) => {
+    setIsProcessing(true);
+    setError(null);
+    setPaymentUrl(null);
+
+    try {
+      const res = await fetch('/api/ashgate/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Échec du paiement');
+
+      const url = data.url || data.payment_url;
+      if (url) setPaymentUrl(url);
+      return data;
+    } catch (err) {
+      setError(err.message || 'Erreur lors du paiement');
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return { isProcessing, paymentUrl, error, initCheckout };
+}
+`;
+
+                    fs.writeFileSync(path.join(hooksDir, `useAshgatePayment.${hookExt}`), isTs ? hookContentTs : hookContentJs);
+                    console.log(chalk.green(`✓ React Hook hooks/useAshgatePayment.${hookExt} généré.`));
+
+                    // 3. React Component : components/AshgateCheckout
                     const compDir = path.join(projectPath, 'components');
                     if (!fs.existsSync(compDir)) fs.mkdirSync(compDir, { recursive: true });
 
-                    const reactNextComponent = `'use client';
+                    const reactNextComponentTs = `'use client';
 
 import React, { useState } from 'react';
 import { useAshgatePayment } from '../hooks/useAshgatePayment';
@@ -2110,11 +2363,119 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
   );
 }
 `;
-                    fs.writeFileSync(path.join(compDir, 'AshgateCheckout.tsx'), reactNextComponent);
-                    console.log(chalk.green('✓ Composant React components/AshgateCheckout.tsx généré.'));
+
+                    const reactNextComponentJs = `'use client';
+
+import React, { useState } from 'react';
+import { useAshgatePayment } from '../hooks/useAshgatePayment';
+
+export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
+  const [provider, setProvider] = useState('fedapay');
+  const [email, setEmail] = useState('client@example.com');
+  const [phoneNumber, setPhoneNumber] = useState('90000000');
+  const [operator, setOperator] = useState('mtn');
+
+  const { isProcessing, paymentUrl, error, initCheckout } = useAshgatePayment();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await initCheckout({
+        provider,
+        amount,
+        currency,
+        email,
+        phoneNumber,
+        operator,
+        description: 'Paiement via Ashgate Next.js',
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: '420px', margin: '2rem auto', padding: '1.5rem', background: '#0F172A', color: '#FFF', borderRadius: '12px', fontFamily: 'sans-serif' }}>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '1rem' }}>Paiement Sécurisé Ashgate</h2>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Fournisseur</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+            {['fedapay', 'feexpay', 'stripe'].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setProvider(p)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '6px',
+                  border: '1px solid ' + (provider === p ? '#6366F1' : '#334155'),
+                  background: provider === p ? '#4F46E5' : '#1E293B',
+                  color: '#FFF',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+              >
+                {p.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+          />
+        </div>
+
+        {provider !== 'stripe' && (
+          <div>
+            <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Téléphone Mobile Money</label>
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              required
+              style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+            />
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isProcessing}
+          style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: 'none', background: '#4F46E5', color: '#FFF', fontWeight: 'bold', cursor: 'pointer', opacity: isProcessing ? 0.6 : 1 }}
+        >
+          {isProcessing ? 'Traitement en cours...' : \`Payer \${amount} \${currency}\`}
+        </button>
+
+        {error && <p style={{ color: '#EF4444', fontSize: '0.875rem', textAlign: 'center' }}>{error}</p>}
+      </form>
+
+      {paymentUrl && (
+        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #334155' }}>
+          <iframe src={paymentUrl} style={{ width: '100%', height: '500px', border: 'none', borderRadius: '8px' }} allow="payment" />
+        </div>
+      )}
+    </div>
+  );
+}
+`;
+
+                    fs.writeFileSync(path.join(compDir, `AshgateCheckout.${compExt}`), isTs ? reactNextComponentTs : reactNextComponentJs);
+                    console.log(chalk.green(`✓ Composant React components/AshgateCheckout.${compExt} généré.`));
 
                 } else if (detectedType === 'react') {
                     // --- INTEGRATION REACT SPA ---
+                    const isTs = fs.existsSync(path.join(projectPath, 'tsconfig.json'));
+                    const hookExt = isTs ? 'ts' : 'js';
+
                     const envPath = path.join(projectPath, '.env');
                     const envVars = `\nVITE_ASHGATE_API_URL=${cloudUrl}\nVITE_ASHGATE_PROJECT_KEY=${projectKey}\nVITE_ASHGATE_ENV=${environment}\n`;
                     fs.appendFileSync(envPath, envVars);
@@ -2126,7 +2487,7 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
                     if (!fs.existsSync(compDir)) fs.mkdirSync(compDir, { recursive: true });
                     if (!fs.existsSync(hooksDir)) fs.mkdirSync(hooksDir, { recursive: true });
 
-                    const reactHookContent = `import { useState } from 'react';
+                    const reactHookContentTs = `import { useState } from 'react';
 
 export function useAshgatePayment() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -2193,8 +2554,77 @@ export function useAshgatePayment() {
   return { isProcessing, paymentUrl, error, initCheckout };
 }
 `;
-                    fs.writeFileSync(path.join(hooksDir, 'useAshgatePayment.ts'), reactHookContent);
-                    console.log(chalk.green('✓ React Hook src/hooks/useAshgatePayment.ts généré.'));
+
+                    const reactHookContentJs = `import { useState } from 'react';
+
+export function useAshgatePayment() {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  const initCheckout = async (params) => {
+    setIsProcessing(true);
+    setError(null);
+    setPaymentUrl(null);
+
+    const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
+    const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
+
+    const provider = (params.provider || 'fedapay').toLowerCase();
+    const endpoint = provider === 'feexpay'
+      ? \`\${apiUrl}/feexpay/payin\`
+      : \`\${apiUrl}/fedapay/direct-payment\`;
+
+    const payload = provider === 'feexpay'
+      ? {
+          network: params.operator || 'mtn',
+          amount: params.amount,
+          phoneNumber: params.phoneNumber,
+          fullname: \`\${params.firstname || ''} \${params.lastname || ''}\`.trim(),
+          email: params.email,
+          description: params.description || 'Paiement Ashgate',
+        }
+      : {
+          provider: provider,
+          amount: params.amount,
+          currency: params.currency || 'XOF',
+          email: params.email,
+          firstname: params.firstname,
+          lastname: params.lastname,
+          phoneNumber: params.phoneNumber,
+          description: params.description || 'Paiement Ashgate',
+        };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-feda-project-key': projectKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Échec du paiement');
+
+      const url = data.url || data.payment_url;
+      if (url) setPaymentUrl(url);
+      return data;
+    } catch (err) {
+      setError(err.message || 'Erreur lors du paiement');
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return { isProcessing, paymentUrl, error, initCheckout };
+}
+`;
+
+                    fs.writeFileSync(path.join(hooksDir, `useAshgatePayment.${hookExt}`), isTs ? reactHookContentTs : reactHookContentJs);
+                    console.log(chalk.green(`✓ React Hook src/hooks/useAshgatePayment.${hookExt} généré.`));
                 } else {
                     console.log(chalk.yellow(`\nℹ Génération des templates non supportée pour le type : ${detectedType}.`));
                 }
