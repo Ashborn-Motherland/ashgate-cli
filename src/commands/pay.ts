@@ -12,7 +12,7 @@ export function registerPayCommands(program: Command): void {
         .description('Créer et tester un paiement directement depuis la ligne de commande')
         .option('-a, --amount <amount>', 'Montant du paiement (ex: 5000)', parseFloat)
         .option('-c, --currency <currency>', 'Devise (XOF, EUR, USD)', 'XOF')
-        .option('-p, --provider <provider>', 'Fournisseur (fedapay, feexpay, stripe)', 'fedapay')
+        .option('-p, --provider <provider>', 'Fournisseur (fedapay, feexpay, stripe, pawapay, paypal, paydunya)', 'fedapay')
         .option('-e, --email <email>', 'Email du client', 'client@example.com')
         .option('-f, --firstname <firstname>', 'Prénom du client', 'Client')
         .option('-l, --lastname <lastname>', 'Nom du client', 'Ashgate')

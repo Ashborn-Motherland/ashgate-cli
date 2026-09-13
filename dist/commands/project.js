@@ -8,7 +8,7 @@ const chalk_1 = __importDefault(require("chalk"));
 const client_1 = require("../api/client");
 const keycloak_1 = require("../auth/keycloak");
 function mapOptionsToDto(options) {
-    const { sandboxKey, sandboxApiKey, liveKey, liveApiKey, feexpayKey, feexpayApiKey, feexpayShop, feexpayShopId, stripeKey, stripeSecretKey, stripePub, stripePublishableKey, stripeWebhook, stripeWebhookSecret, ...rest } = options;
+    const { sandboxKey, sandboxApiKey, liveKey, liveApiKey, feexpayKey, feexpayApiKey, feexpayShop, feexpayShopId, stripeKey, stripeSecretKey, stripePub, stripePublishableKey, stripeWebhook, stripeWebhookSecret, pawapayKey, pawapayApiKey, paypalId, paypalClientId, paypalSecret, paypalClientSecret, paydunyaMaster, paydunyaMasterKey, paydunyaPrivate, paydunyaPrivateKey, paydunyaToken, ...rest } = options;
     const dto = { ...rest };
     const valOrUndefined = (val1, val2) => {
         if (val1 !== undefined)
@@ -38,6 +38,23 @@ function mapOptionsToDto(options) {
     const stripeWebhookVal = valOrUndefined(stripeWebhookSecret, stripeWebhook);
     if (stripeWebhookVal !== undefined)
         dto.stripeWebhookSecret = stripeWebhookVal;
+    const pawapayVal = valOrUndefined(pawapayApiKey, pawapayKey);
+    if (pawapayVal !== undefined)
+        dto.pawapayApiKey = pawapayVal;
+    const paypalIdVal = valOrUndefined(paypalClientId, paypalId);
+    if (paypalIdVal !== undefined)
+        dto.paypalClientId = paypalIdVal;
+    const paypalSecretVal = valOrUndefined(paypalClientSecret, paypalSecret);
+    if (paypalSecretVal !== undefined)
+        dto.paypalClientSecret = paypalSecretVal;
+    const paydunyaMasterVal = valOrUndefined(paydunyaMasterKey, paydunyaMaster);
+    if (paydunyaMasterVal !== undefined)
+        dto.paydunyaMasterKey = paydunyaMasterVal;
+    const paydunyaPrivateVal = valOrUndefined(paydunyaPrivateKey, paydunyaPrivate);
+    if (paydunyaPrivateVal !== undefined)
+        dto.paydunyaPrivateKey = paydunyaPrivateVal;
+    if (paydunyaToken !== undefined)
+        dto.paydunyaToken = paydunyaToken;
     return dto;
 }
 function registerProjectCommands(program) {
@@ -89,6 +106,12 @@ function registerProjectCommands(program) {
         .option('--stripe-key <stripeSecretKey>', 'Clé API Stripe Secrète (Secret Key)')
         .option('--stripe-pub <stripePublishableKey>', 'Clé API Stripe Publique (Publishable Key)')
         .option('--stripe-webhook <stripeWebhookSecret>', 'Secret du Webhook Stripe')
+        .option('--pawapay-key <pawapayApiKey>', 'Clé API pawaPay')
+        .option('--paypal-id <paypalClientId>', 'Client ID PayPal')
+        .option('--paypal-secret <paypalClientSecret>', 'Client Secret PayPal')
+        .option('--paydunya-master <paydunyaMasterKey>', 'Master Key PayDunya')
+        .option('--paydunya-private <paydunyaPrivateKey>', 'Private Key PayDunya')
+        .option('--paydunya-token <paydunyaToken>', 'Token PayDunya')
         .option('--send-invoices <sendInvoices>', 'Envoyer les factures par email automatiquement (true/false)', (v) => v === 'true')
         .action(async (options) => {
         (0, keycloak_1.requireAuth)();
@@ -137,7 +160,13 @@ function registerProjectCommands(program) {
             console.log(`  FeexPay Shop ID         : ${p.feexpayShopId ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}`);
             console.log(`  Stripe Secret Key       : ${p.stripeSecretKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
             console.log(`  Stripe Publishable Key  : ${p.stripePublishableKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
-            console.log(`  Stripe Webhook Secret   : ${p.stripeWebhookSecret ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}\n`);
+            console.log(`  Stripe Webhook Secret   : ${p.stripeWebhookSecret ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}`);
+            console.log(`  pawaPay API Key         : ${p.pawapayApiKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  PayPal Client ID        : ${p.paypalClientId ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}`);
+            console.log(`  PayPal Client Secret    : ${p.paypalClientSecret ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}`);
+            console.log(`  PayDunya Master Key     : ${p.paydunyaMasterKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  PayDunya Private Key    : ${p.paydunyaPrivateKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  PayDunya Token          : ${p.paydunyaToken ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}\n`);
         }
         catch (err) {
             console.error(chalk_1.default.red('✗ Impossible d\'afficher le projet :'), err.response?.data?.message || err.message);
@@ -161,6 +190,12 @@ function registerProjectCommands(program) {
         .option('--stripe-key <stripeSecretKey>', 'Clé API Stripe Secrète (Secret Key)')
         .option('--stripe-pub <stripePublishableKey>', 'Clé API Stripe Publique (Publishable Key)')
         .option('--stripe-webhook <stripeWebhookSecret>', 'Secret du Webhook Stripe')
+        .option('--pawapay-key <pawapayApiKey>', 'Clé API pawaPay')
+        .option('--paypal-id <paypalClientId>', 'Client ID PayPal')
+        .option('--paypal-secret <paypalClientSecret>', 'Client Secret PayPal')
+        .option('--paydunya-master <paydunyaMasterKey>', 'Master Key PayDunya')
+        .option('--paydunya-private <paydunyaPrivateKey>', 'Private Key PayDunya')
+        .option('--paydunya-token <paydunyaToken>', 'Token PayDunya')
         .option('--send-invoices <sendInvoices>', 'Envoyer les factures (true/false)', (v) => v === 'true')
         .action(async (slug, options) => {
         (0, keycloak_1.requireAuth)();
