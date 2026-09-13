@@ -8,7 +8,7 @@
 
 ---
 
-## ⚡ Installation Rapide (One-Liner)
+## Installation Rapide (One-Liner)
 
 ```bash
 curl -fsSL https://ashgateway.com/install.sh | bash
@@ -16,7 +16,7 @@ curl -fsSL https://ashgateway.com/install.sh | bash
 
 ---
 
-## 🚀 Commandes Principales
+## Commandes Principales
 
 ```bash
 # Bilan de santé système et connectivité des API
@@ -37,18 +37,18 @@ ashgate uninstall
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
 ---
 
-## 🔒 Security
+## Security
 
 For vulnerability disclosures, please review our [SECURITY.md](SECURITY.md) policy.
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.

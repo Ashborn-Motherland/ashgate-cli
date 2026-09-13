@@ -4,10 +4,10 @@
 
 We release security updates for the latest major version of Ashgate CLI.
 
-| Version | Supported          |
+| Version | Supported |
 | ------- | ------------------ |
-| 3.x     | :white_check_mark: |
-| < 3.0   | :x:                |
+| 3.x | :white_check_mark: |
+| < 3.0 | :x: |
 
 ## Reporting a Vulnerability
 
