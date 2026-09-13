@@ -173,27 +173,42 @@ export function registerInitCommands(program: Command): void {
 
             // Configuration interactive des fournisseurs de paiement
             console.log(chalk.cyan('\nConfiguration des fournisseurs de paiement :'));
-            console.log('  1. FedaPay uniquement');
-            console.log('  2. FeexPay uniquement');
-            console.log('  3. Stripe uniquement');
-            console.log('  4. FedaPay et FeexPay');
-            console.log('  5. Tous (FedaPay, FeexPay et Stripe) [défaut]');
-            const providerSelection = await askQuestion('Choisissez une option (1-5) : ');
-            
+            console.log('  1. Tous les 6 fournisseurs (FedaPay, pawaPay, PayPal, FeexPay, PayDunya, Stripe) [défaut]');
+            console.log('  2. FedaPay uniquement (Mobile Money Afrique de l\'Ouest)');
+            console.log('  3. pawaPay uniquement (Mobile Money Pan-Africain)');
+            console.log('  4. PayPal uniquement (Checkout V2)');
+            console.log('  5. FeexPay uniquement (Direct / Proxy)');
+            console.log('  6. PayDunya uniquement (Sénégal & UEMOA)');
+            console.log('  7. Stripe uniquement (Cartes Bancaires Internationales)');
+            console.log('  8. Sélection personnalisée');
+            const providerSelection = await askQuestion('Choisissez une option (1-8) [1 par défaut] : ');
+
             let useFedapay = true;
+            let usePawapay = true;
+            let usePaypal = true;
             let useFeexpay = true;
+            let usePaydunya = true;
             let useStripe = true;
-            if (providerSelection === '1') {
-                useFeexpay = false;
-                useStripe = false;
-            } else if (providerSelection === '2') {
-                useFedapay = false;
-                useStripe = false;
+
+            if (providerSelection === '2') {
+                usePawapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false; useStripe = false;
             } else if (providerSelection === '3') {
-                useFedapay = false;
-                useFeexpay = false;
+                useFedapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false; useStripe = false;
             } else if (providerSelection === '4') {
-                useStripe = false;
+                useFedapay = false; usePawapay = false; useFeexpay = false; usePaydunya = false; useStripe = false;
+            } else if (providerSelection === '5') {
+                useFedapay = false; usePawapay = false; usePaypal = false; usePaydunya = false; useStripe = false;
+            } else if (providerSelection === '6') {
+                useFedapay = false; usePawapay = false; usePaypal = false; useFeexpay = false; useStripe = false;
+            } else if (providerSelection === '7') {
+                useFedapay = false; usePawapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false;
+            } else if (providerSelection === '8') {
+                useFedapay = (await askQuestion('Activer FedaPay ? (o/n) [o] : ')).toLowerCase() !== 'n';
+                usePawapay = (await askQuestion('Activer pawaPay ? (o/n) [o] : ')).toLowerCase() !== 'n';
+                usePaypal = (await askQuestion('Activer PayPal ? (o/n) [o] : ')).toLowerCase() !== 'n';
+                useFeexpay = (await askQuestion('Activer FeexPay ? (o/n) [o] : ')).toLowerCase() !== 'n';
+                usePaydunya = (await askQuestion('Activer PayDunya ? (o/n) [o] : ')).toLowerCase() !== 'n';
+                useStripe = (await askQuestion('Activer Stripe ? (o/n) [o] : ')).toLowerCase() !== 'n';
             }
 
             let feexpayMode: 'proxy' | 'sdk' = 'proxy';
@@ -305,7 +320,10 @@ class AshgateConfig {
   static const String projectSlug = '${projectSlug}';
   static const ${fedaEnvType} environment = ${fedaEnvVal};
   static const bool useFedapay = ${useFedapay};
+  static const bool usePawapay = ${usePawapay};
+  static const bool usePaypal = ${usePaypal};
   static const bool useFeexpay = ${useFeexpay};
+  static const bool usePaydunya = ${usePaydunya};
   static const bool useStripe = ${useStripe};
   static const String feexpayToken = '${feexpayToken}';
   static const String feexpayShopId = '${feexpayShopId}';
@@ -492,6 +510,193 @@ class StripeProvider implements AshgatePaymentProvider {
                         if (fs.existsSync(oldStripe)) fs.unlinkSync(oldStripe);
                     }
 
+                    // 3.6 providers/pawapay_provider.dart
+                    if (usePawapay) {
+                        const pawapayProviderContent = `// Généré automatiquement par ashgate init
+import 'dart:convert';
+import 'dart:io';
+import '../ashgate_config.dart';
+import '../ashgate_payment_provider.dart';
+
+class PawapayProvider implements AshgatePaymentProvider {
+  @override
+  Future<AshgatePaymentResult> pay(AshgatePaymentRequest request) async {
+    final client = HttpClient();
+    try {
+      final url = Uri.parse('\${AshgateConfig.cloudUrl}/fedapay/direct-payment');
+
+      final req = await client.postUrl(url);
+      req.headers.set('content-type', 'application/json');
+      req.headers.set('x-feda-project-key', AshgateConfig.projectKey);
+      req.headers.set('x-feda-env', AshgateConfig.environment.toString().split('.').last);
+
+      final body = {
+        'provider': 'pawapay',
+        'amount': request.amount.toInt(),
+        'currency': request.currency,
+        'phoneNumber': request.phoneNumber,
+        'email': request.email,
+        'description': request.description,
+      };
+
+      req.add(utf8.encode(jsonEncode(body)));
+      final response = await req.close();
+      
+      final responseBody = await response.transform(utf8.decoder).join();
+      final json = jsonDecode(responseBody) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return AshgatePaymentResult(
+          success: true,
+          transactionId: json['id']?.toString(),
+          paymentUrl: json['payment_url'] ?? json['url'],
+          token: json['id']?.toString(),
+        );
+      } else {
+        return AshgatePaymentResult(
+          success: false, 
+          errorMessage: json['message'] ?? "Erreur HTTP \${response.statusCode}"
+        );
+      }
+    } catch (e) {
+      return AshgatePaymentResult(success: false, errorMessage: e.toString());
+    } finally {
+      client.close();
+    }
+  }
+}
+`;
+                        fs.writeFileSync(path.join(providersDir, 'pawapay_provider.dart'), pawapayProviderContent);
+                        console.log(chalk.green('✓ Fichier lib/providers/pawapay_provider.dart généré.'));
+                    } else {
+                        const oldPawa = path.join(providersDir, 'pawapay_provider.dart');
+                        if (fs.existsSync(oldPawa)) fs.unlinkSync(oldPawa);
+                    }
+
+                    // 3.7 providers/paypal_provider.dart
+                    if (usePaypal) {
+                        const paypalProviderContent = `// Généré automatiquement par ashgate init
+import 'dart:convert';
+import 'dart:io';
+import '../ashgate_config.dart';
+import '../ashgate_payment_provider.dart';
+
+class PaypalProvider implements AshgatePaymentProvider {
+  @override
+  Future<AshgatePaymentResult> pay(AshgatePaymentRequest request) async {
+    final client = HttpClient();
+    try {
+      final url = Uri.parse('\${AshgateConfig.cloudUrl}/fedapay/direct-payment');
+
+      final req = await client.postUrl(url);
+      req.headers.set('content-type', 'application/json');
+      req.headers.set('x-feda-project-key', AshgateConfig.projectKey);
+      req.headers.set('x-feda-env', AshgateConfig.environment.toString().split('.').last);
+
+      final body = {
+        'provider': 'paypal',
+        'amount': request.amount.toInt(),
+        'currency': request.currency == 'XOF' ? 'EUR' : request.currency,
+        'email': request.email,
+        'description': request.description,
+      };
+
+      req.add(utf8.encode(jsonEncode(body)));
+      final response = await req.close();
+      
+      final responseBody = await response.transform(utf8.decoder).join();
+      final json = jsonDecode(responseBody) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return AshgatePaymentResult(
+          success: true,
+          transactionId: json['id']?.toString(),
+          paymentUrl: json['payment_url'] ?? json['url'],
+          token: json['id']?.toString(),
+        );
+      } else {
+        return AshgatePaymentResult(
+          success: false, 
+          errorMessage: json['message'] ?? "Erreur HTTP \${response.statusCode}"
+        );
+      }
+    } catch (e) {
+      return AshgatePaymentResult(success: false, errorMessage: e.toString());
+    } finally {
+      client.close();
+    }
+  }
+}
+`;
+                        fs.writeFileSync(path.join(providersDir, 'paypal_provider.dart'), paypalProviderContent);
+                        console.log(chalk.green('✓ Fichier lib/providers/paypal_provider.dart généré.'));
+                    } else {
+                        const oldPaypal = path.join(providersDir, 'paypal_provider.dart');
+                        if (fs.existsSync(oldPaypal)) fs.unlinkSync(oldPaypal);
+                    }
+
+                    // 3.8 providers/paydunya_provider.dart
+                    if (usePaydunya) {
+                        const paydunyaProviderContent = `// Généré automatiquement par ashgate init
+import 'dart:convert';
+import 'dart:io';
+import '../ashgate_config.dart';
+import '../ashgate_payment_provider.dart';
+
+class PaydunyaProvider implements AshgatePaymentProvider {
+  @override
+  Future<AshgatePaymentResult> pay(AshgatePaymentRequest request) async {
+    final client = HttpClient();
+    try {
+      final url = Uri.parse('\${AshgateConfig.cloudUrl}/fedapay/direct-payment');
+
+      final req = await client.postUrl(url);
+      req.headers.set('content-type', 'application/json');
+      req.headers.set('x-feda-project-key', AshgateConfig.projectKey);
+      req.headers.set('x-feda-env', AshgateConfig.environment.toString().split('.').last);
+
+      final body = {
+        'provider': 'paydunya',
+        'amount': request.amount.toInt(),
+        'currency': request.currency,
+        'email': request.email,
+        'description': request.description,
+      };
+
+      req.add(utf8.encode(jsonEncode(body)));
+      final response = await req.close();
+      
+      final responseBody = await response.transform(utf8.decoder).join();
+      final json = jsonDecode(responseBody) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return AshgatePaymentResult(
+          success: true,
+          transactionId: json['id']?.toString(),
+          paymentUrl: json['payment_url'] ?? json['url'],
+          token: json['id']?.toString(),
+        );
+      } else {
+        return AshgatePaymentResult(
+          success: false, 
+          errorMessage: json['message'] ?? "Erreur HTTP \${response.statusCode}"
+        );
+      }
+    } catch (e) {
+      return AshgatePaymentResult(success: false, errorMessage: e.toString());
+    } finally {
+      client.close();
+    }
+  }
+}
+`;
+                        fs.writeFileSync(path.join(providersDir, 'paydunya_provider.dart'), paydunyaProviderContent);
+                        console.log(chalk.green('✓ Fichier lib/providers/paydunya_provider.dart généré.'));
+                    } else {
+                        const oldPaydunya = path.join(providersDir, 'paydunya_provider.dart');
+                        if (fs.existsSync(oldPaydunya)) fs.unlinkSync(oldPaydunya);
+                    }
+
                     // 4. providers/feexpay_provider.dart (Adaptateur FeexPay)
                     if (useFeexpay) {
                         let feexpayProviderContent = '';
@@ -617,18 +822,27 @@ class FeexpayProvider implements AshgatePaymentProvider {
                     if (useFedapay) {
                         imports.push("import 'package:feda_flutter/feda_flutter.dart';");
                     }
-                    if ((useFeexpay && feexpayMode === 'proxy') || useStripe) {
+                    if ((useFeexpay && feexpayMode === 'proxy') || useStripe || usePawapay || usePaypal || usePaydunya) {
                         imports.push("import 'package:webview_flutter/webview_flutter.dart';");
                     }
-                    if (useFedapay || useStripe || useFeexpay) {
+                    if (useFedapay || useStripe || useFeexpay || usePawapay || usePaypal || usePaydunya) {
                         imports.push("import 'ashgate_config.dart';");
                     }
                     imports.push("import 'ashgate_payment_provider.dart';");
                     if (useFedapay) {
                         imports.push("import 'providers/fedapay_provider.dart';");
                     }
+                    if (usePawapay) {
+                        imports.push("import 'providers/pawapay_provider.dart';");
+                    }
+                    if (usePaypal) {
+                        imports.push("import 'providers/paypal_provider.dart';");
+                    }
                     if (useFeexpay) {
                         imports.push("import 'providers/feexpay_provider.dart';");
+                    }
+                    if (usePaydunya) {
+                        imports.push("import 'providers/paydunya_provider.dart';");
                     }
                     if (useStripe) {
                         imports.push("import 'providers/stripe_provider.dart';");
@@ -638,8 +852,17 @@ class FeexpayProvider implements AshgatePaymentProvider {
                     if (useFedapay) {
                         providerResolver += '\n    if (name == \'fedapay\') return FedapayProvider();';
                     }
+                    if (usePawapay) {
+                        providerResolver += '\n    if (name == \'pawapay\') return PawapayProvider();';
+                    }
+                    if (usePaypal) {
+                        providerResolver += '\n    if (name == \'paypal\') return PaypalProvider();';
+                    }
                     if (useFeexpay) {
                         providerResolver += '\n    if (name == \'feexpay\') return FeexpayProvider();';
+                    }
+                    if (usePaydunya) {
+                        providerResolver += '\n    if (name == \'paydunya\') return PaydunyaProvider();';
                     }
                     if (useStripe) {
                         providerResolver += '\n    if (name == \'stripe\') return StripeProvider();';
