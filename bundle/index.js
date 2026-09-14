@@ -10906,6 +10906,22 @@ function closeReadlineInterface() {
         rlInstance = null;
     }
 }
+function updateEnvFile(envPath, vars) {
+    let content = fs_1.default.existsSync(envPath) ? fs_1.default.readFileSync(envPath, 'utf8') : '';
+    for (const [key, value] of Object.entries(vars)) {
+        const regex = new RegExp(`^${key}=.*$`, 'gm');
+        if (regex.test(content)) {
+            content = content.replace(regex, `${key}=${value}`);
+        }
+        else {
+            if (content && !content.endsWith('\n')) {
+                content += '\n';
+            }
+            content += `${key}=${value}\n`;
+        }
+    }
+    fs_1.default.writeFileSync(envPath, content);
+}
 function registerInitCommands(program) {
     program
         .command('init')
@@ -12607,8 +12623,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 else if (detectedType === 'nuxt') {
                     // --- INTEGRATION NUXT 3 ---
                     const envPath = path_1.default.join(projectPath, '.env');
-                    const envVars = `\nNUXT_PUBLIC_ASHGATE_API_URL=${cloudUrl}\nNUXT_PUBLIC_ASHGATE_PROJECT_KEY=${projectKey}\nNUXT_PUBLIC_ASHGATE_ENV=${environment}\n`;
-                    fs_1.default.appendFileSync(envPath, envVars);
+                    updateEnvFile(envPath, {
+                        NUXT_PUBLIC_ASHGATE_API_URL: cloudUrl,
+                        NUXT_PUBLIC_ASHGATE_PROJECT_KEY: projectKey,
+                        NUXT_PUBLIC_ASHGATE_ENV: environment,
+                    });
                     console.log(chalk_1.default.green('✓ Fichier .env mis à jour avec les variables NUXT_PUBLIC_ASHGATE.'));
                     // 1. Server Route Nitro : server/api/ashgate/checkout.post.ts
                     const serverApiDir = path_1.default.join(projectPath, 'server', 'api', 'ashgate');
@@ -12966,8 +12985,11 @@ const handlePay = async () => {
                 else if (detectedType === 'vue') {
                     // --- INTEGRATION VUE 3 ---
                     const envPath = path_1.default.join(projectPath, '.env');
-                    const envVars = `\nVITE_ASHGATE_API_URL=${cloudUrl}\nVITE_ASHGATE_PROJECT_KEY=${projectKey}\nVITE_ASHGATE_ENV=${environment}\n`;
-                    fs_1.default.appendFileSync(envPath, envVars);
+                    updateEnvFile(envPath, {
+                        VITE_ASHGATE_API_URL: cloudUrl,
+                        VITE_ASHGATE_PROJECT_KEY: projectKey,
+                        VITE_ASHGATE_ENV: environment,
+                    });
                     console.log(chalk_1.default.green('✓ Fichier .env mis à jour avec les variables VITE_ASHGATE.'));
                     const srcDir = path_1.default.join(projectPath, 'src');
                     const compDir = path_1.default.join(srcDir, 'components');
@@ -13106,8 +13128,11 @@ export function useAshgatePayment() {
                     const hookExt = isTs ? 'ts' : 'js';
                     const compExt = isTs ? 'tsx' : 'jsx';
                     const envPath = path_1.default.join(projectPath, '.env');
-                    const envVars = `\nNEXT_PUBLIC_ASHGATE_API_URL=${cloudUrl}\nNEXT_PUBLIC_ASHGATE_PROJECT_KEY=${projectKey}\nNEXT_PUBLIC_ASHGATE_ENV=${environment}\n`;
-                    fs_1.default.appendFileSync(envPath, envVars);
+                    updateEnvFile(envPath, {
+                        NEXT_PUBLIC_ASHGATE_API_URL: cloudUrl,
+                        NEXT_PUBLIC_ASHGATE_PROJECT_KEY: projectKey,
+                        NEXT_PUBLIC_ASHGATE_ENV: environment,
+                    });
                     console.log(chalk_1.default.green('✓ Fichier .env mis à jour avec NEXT_PUBLIC_ASHGATE.'));
                     // 1. App Router API Route : app/api/ashgate/checkout/route
                     const appApiDir = path_1.default.join(projectPath, 'app', 'api', 'ashgate', 'checkout');
@@ -13511,8 +13536,11 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
                     const isTs = fs_1.default.existsSync(path_1.default.join(projectPath, 'tsconfig.json'));
                     const hookExt = isTs ? 'ts' : 'js';
                     const envPath = path_1.default.join(projectPath, '.env');
-                    const envVars = `\nVITE_ASHGATE_API_URL=${cloudUrl}\nVITE_ASHGATE_PROJECT_KEY=${projectKey}\nVITE_ASHGATE_ENV=${environment}\n`;
-                    fs_1.default.appendFileSync(envPath, envVars);
+                    updateEnvFile(envPath, {
+                        VITE_ASHGATE_API_URL: cloudUrl,
+                        VITE_ASHGATE_PROJECT_KEY: projectKey,
+                        VITE_ASHGATE_ENV: environment,
+                    });
                     console.log(chalk_1.default.green('✓ Fichier .env mis à jour avec VITE_ASHGATE.'));
                     const srcDir = path_1.default.join(projectPath, 'src');
                     const compDir = path_1.default.join(srcDir, 'components');
