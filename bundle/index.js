@@ -11378,7 +11378,7 @@ class StripeProvider implements AshgatePaymentProvider {
   Future<AshgatePaymentResult> pay(AshgatePaymentRequest request) async {
     final client = HttpClient();
     try {
-      final url = Uri.parse('\${AshgateConfig.cloudUrl}/fedapay/direct-payment');
+      final url = Uri.parse('\${AshgateConfig.cloudUrl}/payments/direct-payment');
 
       final req = await client.postUrl(url);
       req.headers.set('content-type', 'application/json');
@@ -11443,7 +11443,7 @@ class PawapayProvider implements AshgatePaymentProvider {
   Future<AshgatePaymentResult> pay(AshgatePaymentRequest request) async {
     final client = HttpClient();
     try {
-      final url = Uri.parse('\${AshgateConfig.cloudUrl}/fedapay/direct-payment');
+      final url = Uri.parse('\${AshgateConfig.cloudUrl}/payments/direct-payment');
 
       final req = await client.postUrl(url);
       req.headers.set('content-type', 'application/json');
@@ -11507,7 +11507,7 @@ class PaypalProvider implements AshgatePaymentProvider {
   Future<AshgatePaymentResult> pay(AshgatePaymentRequest request) async {
     final client = HttpClient();
     try {
-      final url = Uri.parse('\${AshgateConfig.cloudUrl}/fedapay/direct-payment');
+      final url = Uri.parse('\${AshgateConfig.cloudUrl}/payments/direct-payment');
 
       final req = await client.postUrl(url);
       req.headers.set('content-type', 'application/json');
@@ -11570,7 +11570,7 @@ class PaydunyaProvider implements AshgatePaymentProvider {
   Future<AshgatePaymentResult> pay(AshgatePaymentRequest request) async {
     final client = HttpClient();
     try {
-      final url = Uri.parse('\${AshgateConfig.cloudUrl}/fedapay/direct-payment');
+      final url = Uri.parse('\${AshgateConfig.cloudUrl}/payments/direct-payment');
 
       final req = await client.postUrl(url);
       req.headers.set('content-type', 'application/json');
@@ -12640,7 +12640,7 @@ class _MyHomePageState extends State<MyHomePage> {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+  const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
   const payload = {
     provider: provider,
@@ -12687,7 +12687,7 @@ export default defineEventHandler(async (event) => {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+  const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
   const payload = {
     provider: provider,
@@ -12732,7 +12732,7 @@ export default defineEventHandler(async (event) => {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+  const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
   const payload = {
     provider: provider,
@@ -13019,7 +13019,7 @@ export function useAshgatePayment() {
   const error = ref<string | null>(null);
 
   const init    const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
     const payload = {
       provider: provider,
@@ -13076,7 +13076,7 @@ export function useAshgatePayment() {
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
     const payload = {
       provider: provider,
@@ -13147,7 +13147,7 @@ export async function POST(req: Request) {
     const projectKey = process.env.NEXT_PUBLIC_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (body.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
     const payload = {
       provider: provider,
@@ -13190,7 +13190,7 @@ export async function POST(req) {
     const projectKey = process.env.NEXT_PUBLIC_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (body.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
     const payload = {
       provider: provider,
@@ -13565,7 +13565,7 @@ export function useAshgatePayment() {
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
     const payload = {
       provider: provider,
@@ -13622,7 +13622,7 @@ export function useAshgatePayment() {
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
     const payload = {
       provider: provider,
