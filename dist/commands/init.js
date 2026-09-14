@@ -1747,29 +1747,20 @@ class _MyHomePageState extends State<MyHomePage> {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = provider === 'feexpay'
-    ? \`\${apiUrl}/feexpay/payin\`
-    : \`\${apiUrl}/fedapay/direct-payment\`;
+  const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-  const payload = provider === 'feexpay'
-    ? {
-        network: body.operator || 'mtn',
-        amount: body.amount,
-        phoneNumber: body.phoneNumber,
-        fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
-        email: body.email,
-        description: body.description || 'Paiement Ashgate',
-      }
-    : {
-        provider: provider,
-        amount: body.amount,
-        currency: body.currency || 'XOF',
-        email: body.email,
-        firstname: body.firstname,
-        lastname: body.lastname,
-        phoneNumber: body.phoneNumber,
-        description: body.description || 'Paiement Ashgate',
-      };
+  const payload = {
+    provider: provider,
+    amount: body.amount,
+    currency: body.currency || 'XOF',
+    email: body.email,
+    firstname: body.firstname,
+    lastname: body.lastname,
+    phoneNumber: body.phoneNumber || body.phone_number,
+    payment_method: body.operator || body.payment_method || 'mtn',
+    description: body.description || 'Paiement Ashgate',
+    callback_url: body.callbackUrl || body.callback_url,
+  };
 
   try {
     const res = await $fetch(endpoint, {
@@ -1803,29 +1794,20 @@ export default defineEventHandler(async (event) => {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = provider === 'feexpay'
-    ? \`\${apiUrl}/feexpay/payin\`
-    : \`\${apiUrl}/fedapay/direct-payment\`;
+  const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-  const payload = provider === 'feexpay'
-    ? {
-        network: body.operator || 'mtn',
-        amount: body.amount,
-        phoneNumber: body.phoneNumber,
-        fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
-        email: body.email,
-        description: body.description || 'Paiement Ashgate',
-      }
-    : {
-        provider: provider,
-        amount: body.amount,
-        currency: body.currency || 'XOF',
-        email: body.email,
-        firstname: body.firstname,
-        lastname: body.lastname,
-        phoneNumber: body.phoneNumber,
-        description: body.description || 'Paiement Ashgate',
-      };
+  const payload = {
+    provider: provider,
+    amount: body.amount,
+    currency: body.currency || 'XOF',
+    email: body.email,
+    firstname: body.firstname,
+    lastname: body.lastname,
+    phoneNumber: body.phoneNumber || body.phone_number,
+    payment_method: body.operator || body.payment_method || 'mtn',
+    description: body.description || 'Paiement Ashgate',
+    callback_url: body.callbackUrl || body.callback_url,
+  };
 
   try {
     const res = await fetch(endpoint, {
@@ -1857,29 +1839,20 @@ export default defineEventHandler(async (event) => {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = provider === 'feexpay'
-    ? \`\${apiUrl}/feexpay/payin\`
-    : \`\${apiUrl}/fedapay/direct-payment\`;
+  const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-  const payload = provider === 'feexpay'
-    ? {
-        network: body.operator || 'mtn',
-        amount: body.amount,
-        phoneNumber: body.phoneNumber,
-        fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
-        email: body.email,
-        description: body.description || 'Paiement Ashgate',
-      }
-    : {
-        provider: provider,
-        amount: body.amount,
-        currency: body.currency || 'XOF',
-        email: body.email,
-        firstname: body.firstname,
-        lastname: body.lastname,
-        phoneNumber: body.phoneNumber,
-        description: body.description || 'Paiement Ashgate',
-      };
+  const payload = {
+    provider: provider,
+    amount: body.amount,
+    currency: body.currency || 'XOF',
+    email: body.email,
+    firstname: body.firstname,
+    lastname: body.lastname,
+    phoneNumber: body.phoneNumber || body.phone_number,
+    payment_method: body.operator || body.payment_method || 'mtn',
+    description: body.description || 'Paiement Ashgate',
+    callback_url: body.callbackUrl || body.callback_url,
+  };
 
   try {
     const res = await fetch(endpoint, {
@@ -1913,7 +1886,7 @@ export default defineEventHandler(async (event) => {
   const error = ref<string | null>(null);
 
   const initCheckout = async (params: {
-    provider?: 'fedapay' | 'feexpay' | 'stripe' | string;
+    provider?: 'fedapay' | 'feexpay' | 'stripe' | 'pawapay' | 'paypal' | 'paydunya' | string;
     amount: number;
     currency?: string;
     email: string;
@@ -2007,17 +1980,17 @@ export default defineEventHandler(async (event) => {
         <div class="grid grid-cols-3 gap-2">
           <button
             type="button"
-            v-for="p in ['fedapay', 'feexpay', 'stripe']"
+            v-for="p in ['fedapay', 'feexpay', 'stripe', 'pawapay', 'paypal', 'paydunya']"
             :key="p"
             @click="form.provider = p"
             :class="[
-              'py-2 px-3 text-sm font-semibold rounded-lg border transition',
+              'py-2 px-3 text-xs font-semibold rounded-lg border transition uppercase',
               form.provider === p
                 ? 'bg-indigo-600 border-indigo-500 text-white'
                 : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
             ]"
           >
-            {{ p.toUpperCase() }}
+            {{ p }}
           </button>
         </div>
       </div>
@@ -2042,7 +2015,7 @@ export default defineEventHandler(async (event) => {
         />
       </div>
 
-      <div v-if="form.provider !== 'stripe'">
+      <div v-if="['fedapay', 'feexpay', 'pawapay'].includes(form.provider)">
         <label class="block text-sm font-medium mb-1 text-slate-300">Téléphone Mobile Money</label>
         <input
           v-model="form.phoneNumber"
@@ -2053,7 +2026,7 @@ export default defineEventHandler(async (event) => {
         />
       </div>
 
-      <div v-if="form.provider !== 'stripe'">
+      <div v-if="['fedapay', 'feexpay', 'pawapay'].includes(form.provider)">
         <label class="block text-sm font-medium mb-1 text-slate-300">Opérateur</label>
         <select
           v-model="form.operator"
@@ -2062,6 +2035,7 @@ export default defineEventHandler(async (event) => {
           <option value="mtn">MTN Mobile Money</option>
           <option value="moov">Moov Money</option>
           <option value="celtiis">Celtiis Cash</option>
+          <option value="orange">Orange Money</option>
         </select>
       </div>
 
@@ -2148,38 +2122,20 @@ export function useAshgatePayment() {
   const paymentUrl = ref<string | null>(null);
   const error = ref<string | null>(null);
 
-  const initCheckout = async (params: CheckoutParams) => {
-    isProcessing.value = true;
-    error.value = null;
-    paymentUrl.value = null;
+  const init    const provider = (params.provider || 'fedapay').toLowerCase();
+    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-    const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
-    const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
-
-    const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = provider === 'feexpay'
-      ? \`\${apiUrl}/feexpay/payin\`
-      : \`\${apiUrl}/fedapay/direct-payment\`;
-
-    const payload = provider === 'feexpay'
-      ? {
-          network: params.operator || 'mtn',
-          amount: params.amount,
-          phoneNumber: params.phoneNumber,
-          fullname: \`\${params.firstname || ''} \${params.lastname || ''}\`.trim(),
-          email: params.email,
-          description: params.description || 'Paiement Ashgate',
-        }
-      : {
-          provider: provider,
-          amount: params.amount,
-          currency: params.currency || 'XOF',
-          email: params.email,
-          firstname: params.firstname,
-          lastname: params.lastname,
-          phoneNumber: params.phoneNumber,
-          description: params.description || 'Paiement Ashgate',
-        };
+    const payload = {
+      provider: provider,
+      amount: params.amount,
+      currency: params.currency || 'XOF',
+      email: params.email,
+      firstname: params.firstname,
+      lastname: params.lastname,
+      phoneNumber: params.phoneNumber,
+      payment_method: params.operator || 'mtn',
+      description: params.description || 'Paiement Ashgate',
+    };
 
     try {
       const res = await fetch(endpoint, {
@@ -2224,29 +2180,19 @@ export function useAshgatePayment() {
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = provider === 'feexpay'
-      ? \`\${apiUrl}/feexpay/payin\`
-      : \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-    const payload = provider === 'feexpay'
-      ? {
-          network: params.operator || 'mtn',
-          amount: params.amount,
-          phoneNumber: params.phoneNumber,
-          fullname: \`\${params.firstname || ''} \${params.lastname || ''}\`.trim(),
-          email: params.email,
-          description: params.description || 'Paiement Ashgate',
-        }
-      : {
-          provider: provider,
-          amount: params.amount,
-          currency: params.currency || 'XOF',
-          email: params.email,
-          firstname: params.firstname,
-          lastname: params.lastname,
-          phoneNumber: params.phoneNumber,
-          description: params.description || 'Paiement Ashgate',
-        };
+    const payload = {
+      provider: provider,
+      amount: params.amount,
+      currency: params.currency || 'XOF',
+      email: params.email,
+      firstname: params.firstname,
+      lastname: params.lastname,
+      phoneNumber: params.phoneNumber,
+      payment_method: params.operator || 'mtn',
+      description: params.description || 'Paiement Ashgate',
+    };
 
     try {
       const res = await fetch(endpoint, {
@@ -2302,29 +2248,20 @@ export async function POST(req: Request) {
     const projectKey = process.env.NEXT_PUBLIC_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (body.provider || 'fedapay').toLowerCase();
-    const endpoint = provider === 'feexpay'
-      ? \`\${apiUrl}/feexpay/payin\`
-      : \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-    const payload = provider === 'feexpay'
-      ? {
-          network: body.operator || 'mtn',
-          amount: body.amount,
-          phoneNumber: body.phoneNumber,
-          fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
-          email: body.email,
-          description: body.description || 'Paiement Ashgate',
-        }
-      : {
-          provider: provider,
-          amount: body.amount,
-          currency: body.currency || 'XOF',
-          email: body.email,
-          firstname: body.firstname,
-          lastname: body.lastname,
-          phoneNumber: body.phoneNumber,
-          description: body.description || 'Paiement Ashgate',
-        };
+    const payload = {
+      provider: provider,
+      amount: body.amount,
+      currency: body.currency || 'XOF',
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      phoneNumber: body.phoneNumber || body.phone_number,
+      payment_method: body.operator || body.payment_method || 'mtn',
+      description: body.description || 'Paiement Ashgate',
+      callback_url: body.callbackUrl || body.callback_url,
+    };
 
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -2354,29 +2291,20 @@ export async function POST(req) {
     const projectKey = process.env.NEXT_PUBLIC_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (body.provider || 'fedapay').toLowerCase();
-    const endpoint = provider === 'feexpay'
-      ? \`\${apiUrl}/feexpay/payin\`
-      : \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-    const payload = provider === 'feexpay'
-      ? {
-          network: body.operator || 'mtn',
-          amount: body.amount,
-          phoneNumber: body.phoneNumber,
-          fullname: \`\${body.firstname || ''} \${body.lastname || ''}\`.trim(),
-          email: body.email,
-          description: body.description || 'Paiement Ashgate',
-        }
-      : {
-          provider: provider,
-          amount: body.amount,
-          currency: body.currency || 'XOF',
-          email: body.email,
-          firstname: body.firstname,
-          lastname: body.lastname,
-          phoneNumber: body.phoneNumber,
-          description: body.description || 'Paiement Ashgate',
-        };
+    const payload = {
+      provider: provider,
+      amount: body.amount,
+      currency: body.currency || 'XOF',
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      phoneNumber: body.phoneNumber || body.phone_number,
+      payment_method: body.operator || body.payment_method || 'mtn',
+      description: body.description || 'Paiement Ashgate',
+      callback_url: body.callbackUrl || body.callback_url,
+    };
 
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -2411,14 +2339,14 @@ export function useAshgatePayment() {
   const [error, setError] = useState<string | null>(null);
 
   const initCheckout = async (params: {
-    provider?: 'fedapay' | 'feexpay' | 'stripe' | string;
+    provider?: 'fedapay' | 'feexpay' | 'stripe' | 'pawapay' | 'paypal' | 'paydunya' | string;
     amount: number;
     currency?: string;
     email: string;
     firstname?: string;
     lastname?: string;
     phoneNumber?: string;
-    operator?: 'mtn' | 'moov' | 'celtiis' | string;
+    operator?: string;
     description?: string;
   }) => {
     setIsProcessing(true);
@@ -2497,10 +2425,10 @@ import React, { useState } from 'react';
 import { useAshgatePayment } from '../hooks/useAshgatePayment';
 
 export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
-  const [provider, setProvider] = useState<'fedapay' | 'feexpay' | 'stripe'>('fedapay');
+  const [provider, setProvider] = useState<'fedapay' | 'feexpay' | 'stripe' | 'pawapay' | 'paypal' | 'paydunya'>('fedapay');
   const [email, setEmail] = useState('client@example.com');
   const [phoneNumber, setPhoneNumber] = useState('90000000');
-  const [operator, setOperator] = useState<'mtn' | 'moov' | 'celtiis'>('mtn');
+  const [operator, setOperator] = useState('mtn');
 
   const { isProcessing, paymentUrl, error, initCheckout } = useAshgatePayment();
 
@@ -2529,7 +2457,7 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Fournisseur</label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-            {(['fedapay', 'feexpay', 'stripe'] as const).map((p) => (
+            {(['fedapay', 'feexpay', 'stripe', 'pawapay', 'paypal', 'paydunya'] as const).map((p) => (
               <button
                 key={p}
                 type="button"
@@ -2542,9 +2470,11 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
                   color: '#FFF',
                   fontWeight: 'bold',
                   cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
                 }}
               >
-                {p.toUpperCase()}
+                {p}
               </button>
             ))}
           </div>
@@ -2561,7 +2491,7 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
           />
         </div>
 
-        {provider !== 'stripe' && (
+        {['fedapay', 'feexpay', 'pawapay'].includes(provider) && (
           <div>
             <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Téléphone Mobile Money</label>
             <input
@@ -2632,7 +2562,7 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Fournisseur</label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-            {['fedapay', 'feexpay', 'stripe'].map((p) => (
+            {['fedapay', 'feexpay', 'stripe', 'pawapay', 'paypal', 'paydunya'].map((p) => (
               <button
                 key={p}
                 type="button"
@@ -2645,9 +2575,11 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
                   color: '#FFF',
                   fontWeight: 'bold',
                   cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
                 }}
               >
-                {p.toUpperCase()}
+                {p}
               </button>
             ))}
           </div>
@@ -2664,7 +2596,7 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
           />
         </div>
 
-        {provider !== 'stripe' && (
+        {['fedapay', 'feexpay', 'pawapay'].includes(provider) && (
           <div>
             <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Téléphone Mobile Money</label>
             <input
@@ -2731,29 +2663,19 @@ export function useAshgatePayment() {
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = provider === 'feexpay'
-      ? \`\${apiUrl}/feexpay/payin\`
-      : \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-    const payload = provider === 'feexpay'
-      ? {
-          network: params.operator || 'mtn',
-          amount: params.amount,
-          phoneNumber: params.phoneNumber,
-          fullname: \`\${params.firstname || ''} \${params.lastname || ''}\`.trim(),
-          email: params.email,
-          description: params.description || 'Paiement Ashgate',
-        }
-      : {
-          provider: provider,
-          amount: params.amount,
-          currency: params.currency || 'XOF',
-          email: params.email,
-          firstname: params.firstname,
-          lastname: params.lastname,
-          phoneNumber: params.phoneNumber,
-          description: params.description || 'Paiement Ashgate',
-        };
+    const payload = {
+      provider: provider,
+      amount: params.amount,
+      currency: params.currency || 'XOF',
+      email: params.email,
+      firstname: params.firstname,
+      lastname: params.lastname,
+      phoneNumber: params.phoneNumber,
+      payment_method: params.operator || 'mtn',
+      description: params.description || 'Paiement Ashgate',
+    };
 
     try {
       const res = await fetch(endpoint, {
@@ -2775,7 +2697,7 @@ export function useAshgatePayment() {
       setError(err.message || 'Erreur lors du paiement');
       throw err;
     } finally {
-      setIsProcessing(false);
+      isProcessing.value = false;
     }
   };
 
@@ -2798,29 +2720,19 @@ export function useAshgatePayment() {
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = provider === 'feexpay'
-      ? \`\${apiUrl}/feexpay/payin\`
-      : \`\${apiUrl}/fedapay/direct-payment\`;
+    const endpoint = \`\${apiUrl}/fedapay/direct-payment\`;
 
-    const payload = provider === 'feexpay'
-      ? {
-          network: params.operator || 'mtn',
-          amount: params.amount,
-          phoneNumber: params.phoneNumber,
-          fullname: \`\${params.firstname || ''} \${params.lastname || ''}\`.trim(),
-          email: params.email,
-          description: params.description || 'Paiement Ashgate',
-        }
-      : {
-          provider: provider,
-          amount: params.amount,
-          currency: params.currency || 'XOF',
-          email: params.email,
-          firstname: params.firstname,
-          lastname: params.lastname,
-          phoneNumber: params.phoneNumber,
-          description: params.description || 'Paiement Ashgate',
-        };
+    const payload = {
+      provider: provider,
+      amount: params.amount,
+      currency: params.currency || 'XOF',
+      email: params.email,
+      firstname: params.firstname,
+      lastname: params.lastname,
+      phoneNumber: params.phoneNumber,
+      payment_method: params.operator || 'mtn',
+      description: params.description || 'Paiement Ashgate',
+    };
 
     try {
       const res = await fetch(endpoint, {
