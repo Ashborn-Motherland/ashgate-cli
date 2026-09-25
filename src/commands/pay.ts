@@ -12,7 +12,7 @@ export function registerPayCommands(program: Command): void {
         .description('Créer et tester un paiement directement depuis la ligne de commande')
         .option('-a, --amount <amount>', 'Montant du paiement (ex: 5000)', parseFloat)
         .option('-c, --currency <currency>', 'Devise (XOF, EUR, USD)', 'XOF')
-        .option('-p, --provider <provider>', 'Fournisseur (fedapay, feexpay, stripe, pawapay, paypal, paydunya)', 'fedapay')
+        .option('-p, --provider <provider>', 'Fournisseur (fedapay, feexpay, sebpay, stripe, pawapay, paypal, paydunya, momo)', 'fedapay')
         .option('-e, --email <email>', 'Email du client', 'client@example.com')
         .option('-f, --firstname <firstname>', 'Prénom du client', 'Client')
         .option('-l, --lastname <lastname>', 'Nom du client', 'Ashgate')
@@ -81,16 +81,35 @@ export function registerPayCommands(program: Command): void {
 
                     paymentUrl = response.data.url || response.data.payment_url;
                     transactionId = response.data.reference || response.data.id || 'FEEX-' + Date.now();
+                } else if (provider === 'sebpay') {
+                    // SebPay → route dédiée /sebpay/direct-payment
+                    const response = await apiClient.post('/sebpay/direct-payment', {
+                        amount: amount,
+                        currency: currency,
+                        phoneNumber: phone,
+                        email: email,
+                        firstname: firstname,
+                        lastname: lastname,
+                        description: description,
+                    }, {
+                        headers: {
+                            'x-feda-project-key': projectKey,
+                        }
+                    });
+
+                    paymentUrl = response.data.url || response.data.payment_url;
+                    transactionId = response.data.id || response.data.reference || 'SEB-' + Date.now();
                 } else {
-                    // FedaPay & Stripe proxy
-                    const response = await apiClient.post('/fedapay/direct-payment', {
+                    // FedaPay, Stripe, PawaPay, PayPal, PayDunya, MoMo → route universelle
+                    const response = await apiClient.post('/payments/direct-payment', {
                         provider: provider,
                         amount: amount,
                         currency: currency,
                         email: email,
                         firstname: firstname,
                         lastname: lastname,
-                        phoneNumber: phone,
+                        phone_number: phone,
+                        payment_method: operator,
                         description: description,
                     }, {
                         headers: {

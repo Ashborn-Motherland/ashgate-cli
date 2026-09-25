@@ -1766,27 +1766,56 @@ class _MyHomePageState extends State<MyHomePage> {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
-  const payload = {
-    provider: provider,
-    amount: body.amount,
-    currency: body.currency || 'XOF',
-    email: body.email,
-    firstname: body.firstname,
-    lastname: body.lastname,
-    phoneNumber: body.phoneNumber || body.phone_number,
-    payment_method: body.operator || body.payment_method || 'mtn',
-    description: body.description || 'Paiement Ashgate',
-    callback_url: body.callbackUrl || body.callback_url,
-  };
+  // Routing intelligent par fournisseur
+  // - feexpay  → POST /feexpay/payin        (route dédiée, payload spécifique)
+  // - sebpay   → POST /sebpay/direct-payment (route dédiée)
+  // - autres   → POST /payments/direct-payment (route universelle multi-gateway)
+  let endpoint: string;
+  let payload: Record<string, unknown>;
+
+  if (provider === 'feexpay') {
+    endpoint = \`\${apiUrl}/feexpay/payin\`;
+    payload = {
+      network: body.operator || body.payment_method || 'mtn',
+      amount: body.amount,
+      phoneNumber: body.phoneNumber || body.phone_number,
+      fullname: [body.firstname, body.lastname].filter(Boolean).join(' ') || 'Client',
+      email: body.email,
+      description: body.description || 'Paiement Ashgate',
+    };
+  } else if (provider === 'sebpay') {
+    endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+    payload = {
+      amount: body.amount,
+      currency: body.currency || 'XOF',
+      phoneNumber: body.phoneNumber || body.phone_number,
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      description: body.description || 'Paiement Ashgate',
+      callback_url: body.callbackUrl || body.callback_url,
+    };
+  } else {
+    endpoint = \`\${apiUrl}/payments/direct-payment\`;
+    payload = {
+      provider,
+      amount: body.amount,
+      currency: body.currency || 'XOF',
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      phone_number: body.phoneNumber || body.phone_number,
+      payment_method: body.operator || body.payment_method || 'mtn',
+      description: body.description || 'Paiement Ashgate',
+      callback_url: body.callbackUrl || body.callback_url,
+    };
+  }
 
   try {
     const res = await $fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'x-feda-project-key': projectKey,
-      },
+      headers: { 'x-feda-project-key': projectKey },
       body: payload,
     });
     return res;
@@ -1813,20 +1842,51 @@ export default defineEventHandler(async (event) => {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
-  const payload = {
-    provider: provider,
-    amount: body.amount,
-    currency: body.currency || 'XOF',
-    email: body.email,
-    firstname: body.firstname,
-    lastname: body.lastname,
-    phoneNumber: body.phoneNumber || body.phone_number,
-    payment_method: body.operator || body.payment_method || 'mtn',
-    description: body.description || 'Paiement Ashgate',
-    callback_url: body.callbackUrl || body.callback_url,
-  };
+  // Routing intelligent par fournisseur :
+  // feexpay  → POST /feexpay/payin (route dédiée, payload spécifique)
+  // sebpay   → POST /sebpay/direct-payment (route dédiée)
+  // autres   → POST /payments/direct-payment (route universelle multi-gateway)
+  let endpoint: string;
+  let payload: Record<string, unknown>;
+
+  if (provider === 'feexpay') {
+    endpoint = \`\${apiUrl}/feexpay/payin\`;
+    payload = {
+      network: body.operator || body.payment_method || 'mtn',
+      amount: body.amount,
+      phoneNumber: body.phoneNumber || body.phone_number,
+      fullname: [body.firstname, body.lastname].filter(Boolean).join(' ') || 'Client',
+      email: body.email,
+      description: body.description || 'Paiement Ashgate',
+    };
+  } else if (provider === 'sebpay') {
+    endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+    payload = {
+      amount: body.amount,
+      currency: body.currency || 'XOF',
+      phoneNumber: body.phoneNumber || body.phone_number,
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      description: body.description || 'Paiement Ashgate',
+      callback_url: body.callbackUrl || body.callback_url,
+    };
+  } else {
+    endpoint = \`\${apiUrl}/payments/direct-payment\`;
+    payload = {
+      provider,
+      amount: body.amount,
+      currency: body.currency || 'XOF',
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      phone_number: body.phoneNumber || body.phone_number,
+      payment_method: body.operator || body.payment_method || 'mtn',
+      description: body.description || 'Paiement Ashgate',
+      callback_url: body.callbackUrl || body.callback_url,
+    };
+  }
 
   try {
     const res = await fetch(endpoint, {
@@ -1858,20 +1918,51 @@ export default defineEventHandler(async (event) => {
   const projectKey = config.public.ashgateProjectKey || '${projectKey}';
 
   const provider = (body.provider || 'fedapay').toLowerCase();
-  const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
-  const payload = {
-    provider: provider,
-    amount: body.amount,
-    currency: body.currency || 'XOF',
-    email: body.email,
-    firstname: body.firstname,
-    lastname: body.lastname,
-    phoneNumber: body.phoneNumber || body.phone_number,
-    payment_method: body.operator || body.payment_method || 'mtn',
-    description: body.description || 'Paiement Ashgate',
-    callback_url: body.callbackUrl || body.callback_url,
-  };
+  // Routing intelligent par fournisseur :
+  // feexpay  → POST /feexpay/payin (route dédiée, payload spécifique)
+  // sebpay   → POST /sebpay/direct-payment (route dédiée)
+  // autres   → POST /payments/direct-payment (route universelle multi-gateway)
+  let endpoint;
+  let payload;
+
+  if (provider === 'feexpay') {
+    endpoint = \`\${apiUrl}/feexpay/payin\`;
+    payload = {
+      network: body.operator || body.payment_method || 'mtn',
+      amount: body.amount,
+      phoneNumber: body.phoneNumber || body.phone_number,
+      fullname: [body.firstname, body.lastname].filter(Boolean).join(' ') || 'Client',
+      email: body.email,
+      description: body.description || 'Paiement Ashgate',
+    };
+  } else if (provider === 'sebpay') {
+    endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+    payload = {
+      amount: body.amount,
+      currency: body.currency || 'XOF',
+      phoneNumber: body.phoneNumber || body.phone_number,
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      description: body.description || 'Paiement Ashgate',
+      callback_url: body.callbackUrl || body.callback_url,
+    };
+  } else {
+    endpoint = \`\${apiUrl}/payments/direct-payment\`;
+    payload = {
+      provider,
+      amount: body.amount,
+      currency: body.currency || 'XOF',
+      email: body.email,
+      firstname: body.firstname,
+      lastname: body.lastname,
+      phone_number: body.phoneNumber || body.phone_number,
+      payment_method: body.operator || body.payment_method || 'mtn',
+      description: body.description || 'Paiement Ashgate',
+      callback_url: body.callbackUrl || body.callback_url,
+    };
+  }
 
   try {
     const res = await fetch(endpoint, {
@@ -2137,6 +2228,7 @@ export interface CheckoutParams {
   phoneNumber?: string;
   description?: string;
   operator?: string;
+  callbackUrl?: string;
 }
 
 export function useAshgatePayment() {
@@ -2144,20 +2236,59 @@ export function useAshgatePayment() {
   const paymentUrl = ref<string | null>(null);
   const error = ref<string | null>(null);
 
-  const init    const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
+  const initCheckout = async (params: CheckoutParams) => {
+    isProcessing.value = true;
+    error.value = null;
+    paymentUrl.value = null;
 
-    const payload = {
-      provider: provider,
-      amount: params.amount,
-      currency: params.currency || 'XOF',
-      email: params.email,
-      firstname: params.firstname,
-      lastname: params.lastname,
-      phoneNumber: params.phoneNumber,
-      payment_method: params.operator || 'mtn',
-      description: params.description || 'Paiement Ashgate',
-    };
+    const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
+    const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
+    const provider = (params.provider || 'fedapay').toLowerCase();
+
+    // Routing intelligent par fournisseur :
+    // feexpay  → POST /feexpay/payin (route dédiée, payload spécifique)
+    // sebpay   → POST /sebpay/direct-payment (route dédiée)
+    // autres   → POST /payments/direct-payment (route universelle multi-gateway)
+    let endpoint: string;
+    let payload: Record<string, unknown>;
+
+    if (provider === 'feexpay') {
+      endpoint = \`\${apiUrl}/feexpay/payin\`;
+      payload = {
+        network: params.operator || 'mtn',
+        amount: params.amount,
+        phoneNumber: params.phoneNumber,
+        fullname: [params.firstname, params.lastname].filter(Boolean).join(' ') || 'Client',
+        email: params.email,
+        description: params.description || 'Paiement Ashgate',
+      };
+    } else if (provider === 'sebpay') {
+      endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+      payload = {
+        amount: params.amount,
+        currency: params.currency || 'XOF',
+        phoneNumber: params.phoneNumber,
+        email: params.email,
+        firstname: params.firstname,
+        lastname: params.lastname,
+        description: params.description || 'Paiement Ashgate',
+        callback_url: params.callbackUrl,
+      };
+    } else {
+      endpoint = \`\${apiUrl}/payments/direct-payment\`;
+      payload = {
+        provider,
+        amount: params.amount,
+        currency: params.currency || 'XOF',
+        email: params.email,
+        firstname: params.firstname,
+        lastname: params.lastname,
+        phone_number: params.phoneNumber,
+        payment_method: params.operator || 'mtn',
+        description: params.description || 'Paiement Ashgate',
+        callback_url: params.callbackUrl,
+      };
+    }
 
     try {
       const res = await fetch(endpoint, {
@@ -2170,7 +2301,7 @@ export function useAshgatePayment() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Échec de l’initialisation');
+      if (!res.ok) throw new Error(data.message || 'Echec de l\'initialisation');
 
       const url = data.url || data.payment_url;
       if (url) paymentUrl.value = url;
@@ -2200,21 +2331,52 @@ export function useAshgatePayment() {
 
     const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
-
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
-    const payload = {
-      provider: provider,
-      amount: params.amount,
-      currency: params.currency || 'XOF',
-      email: params.email,
-      firstname: params.firstname,
-      lastname: params.lastname,
-      phoneNumber: params.phoneNumber,
-      payment_method: params.operator || 'mtn',
-      description: params.description || 'Paiement Ashgate',
-    };
+    // Routing intelligent par fournisseur :
+    // feexpay  → POST /feexpay/payin (route dédiée, payload spécifique)
+    // sebpay   → POST /sebpay/direct-payment (route dédiée)
+    // autres   → POST /payments/direct-payment (route universelle multi-gateway)
+    let endpoint;
+    let payload;
+
+    if (provider === 'feexpay') {
+      endpoint = \`\${apiUrl}/feexpay/payin\`;
+      payload = {
+        network: params.operator || 'mtn',
+        amount: params.amount,
+        phoneNumber: params.phoneNumber,
+        fullname: [params.firstname, params.lastname].filter(Boolean).join(' ') || 'Client',
+        email: params.email,
+        description: params.description || 'Paiement Ashgate',
+      };
+    } else if (provider === 'sebpay') {
+      endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+      payload = {
+        amount: params.amount,
+        currency: params.currency || 'XOF',
+        phoneNumber: params.phoneNumber,
+        email: params.email,
+        firstname: params.firstname,
+        lastname: params.lastname,
+        description: params.description || 'Paiement Ashgate',
+        callback_url: params.callbackUrl,
+      };
+    } else {
+      endpoint = \`\${apiUrl}/payments/direct-payment\`;
+      payload = {
+        provider,
+        amount: params.amount,
+        currency: params.currency || 'XOF',
+        email: params.email,
+        firstname: params.firstname,
+        lastname: params.lastname,
+        phone_number: params.phoneNumber,
+        payment_method: params.operator || 'mtn',
+        description: params.description || 'Paiement Ashgate',
+        callback_url: params.callbackUrl,
+      };
+    }
 
     try {
       const res = await fetch(endpoint, {
@@ -2227,7 +2389,7 @@ export function useAshgatePayment() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Échec de l’initialisation');
+      if (!res.ok) throw new Error(data.message || 'Echec de l\'initialisation');
 
       const url = data.url || data.payment_url;
       if (url) paymentUrl.value = url;
@@ -2273,20 +2435,51 @@ export async function POST(req: Request) {
     const projectKey = process.env.NEXT_PUBLIC_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (body.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
-    const payload = {
-      provider: provider,
-      amount: body.amount,
-      currency: body.currency || 'XOF',
-      email: body.email,
-      firstname: body.firstname,
-      lastname: body.lastname,
-      phoneNumber: body.phoneNumber || body.phone_number,
-      payment_method: body.operator || body.payment_method || 'mtn',
-      description: body.description || 'Paiement Ashgate',
-      callback_url: body.callbackUrl || body.callback_url,
-    };
+    // Routing intelligent par fournisseur :
+    // feexpay  → POST /feexpay/payin (route dédiée, payload spécifique)
+    // sebpay   → POST /sebpay/direct-payment (route dédiée)
+    // autres   → POST /payments/direct-payment (route universelle multi-gateway)
+    let endpoint: string;
+    let payload: Record<string, unknown>;
+
+    if (provider === 'feexpay') {
+      endpoint = \`\${apiUrl}/feexpay/payin\`;
+      payload = {
+        network: body.operator || body.payment_method || 'mtn',
+        amount: body.amount,
+        phoneNumber: body.phoneNumber || body.phone_number,
+        fullname: [body.firstname, body.lastname].filter(Boolean).join(' ') || 'Client',
+        email: body.email,
+        description: body.description || 'Paiement Ashgate',
+      };
+    } else if (provider === 'sebpay') {
+      endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+      payload = {
+        amount: body.amount,
+        currency: body.currency || 'XOF',
+        phoneNumber: body.phoneNumber || body.phone_number,
+        email: body.email,
+        firstname: body.firstname,
+        lastname: body.lastname,
+        description: body.description || 'Paiement Ashgate',
+        callback_url: body.callbackUrl || body.callback_url,
+      };
+    } else {
+      endpoint = \`\${apiUrl}/payments/direct-payment\`;
+      payload = {
+        provider,
+        amount: body.amount,
+        currency: body.currency || 'XOF',
+        email: body.email,
+        firstname: body.firstname,
+        lastname: body.lastname,
+        phone_number: body.phoneNumber || body.phone_number,
+        payment_method: body.operator || body.payment_method || 'mtn',
+        description: body.description || 'Paiement Ashgate',
+        callback_url: body.callbackUrl || body.callback_url,
+      };
+    }
 
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -2299,7 +2492,7 @@ export async function POST(req: Request) {
 
     const data = await res.json();
     if (!res.ok) {
-      return NextResponse.json({ error: data.message || 'Échec du paiement' }, { status: res.status });
+      return NextResponse.json({ error: data.message || 'Echec du paiement' }, { status: res.status });
     }
     return NextResponse.json(data);
   } catch (err: any) {
@@ -2316,20 +2509,51 @@ export async function POST(req) {
     const projectKey = process.env.NEXT_PUBLIC_ASHGATE_PROJECT_KEY || '${projectKey}';
 
     const provider = (body.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
-    const payload = {
-      provider: provider,
-      amount: body.amount,
-      currency: body.currency || 'XOF',
-      email: body.email,
-      firstname: body.firstname,
-      lastname: body.lastname,
-      phoneNumber: body.phoneNumber || body.phone_number,
-      payment_method: body.operator || body.payment_method || 'mtn',
-      description: body.description || 'Paiement Ashgate',
-      callback_url: body.callbackUrl || body.callback_url,
-    };
+    // Routing intelligent par fournisseur :
+    // feexpay  → POST /feexpay/payin (route dédiée, payload spécifique)
+    // sebpay   → POST /sebpay/direct-payment (route dédiée)
+    // autres   → POST /payments/direct-payment (route universelle multi-gateway)
+    let endpoint;
+    let payload;
+
+    if (provider === 'feexpay') {
+      endpoint = \`\${apiUrl}/feexpay/payin\`;
+      payload = {
+        network: body.operator || body.payment_method || 'mtn',
+        amount: body.amount,
+        phoneNumber: body.phoneNumber || body.phone_number,
+        fullname: [body.firstname, body.lastname].filter(Boolean).join(' ') || 'Client',
+        email: body.email,
+        description: body.description || 'Paiement Ashgate',
+      };
+    } else if (provider === 'sebpay') {
+      endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+      payload = {
+        amount: body.amount,
+        currency: body.currency || 'XOF',
+        phoneNumber: body.phoneNumber || body.phone_number,
+        email: body.email,
+        firstname: body.firstname,
+        lastname: body.lastname,
+        description: body.description || 'Paiement Ashgate',
+        callback_url: body.callbackUrl || body.callback_url,
+      };
+    } else {
+      endpoint = \`\${apiUrl}/payments/direct-payment\`;
+      payload = {
+        provider,
+        amount: body.amount,
+        currency: body.currency || 'XOF',
+        email: body.email,
+        firstname: body.firstname,
+        lastname: body.lastname,
+        phone_number: body.phoneNumber || body.phone_number,
+        payment_method: body.operator || body.payment_method || 'mtn',
+        description: body.description || 'Paiement Ashgate',
+        callback_url: body.callbackUrl || body.callback_url,
+      };
+    }
 
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -2342,7 +2566,7 @@ export async function POST(req) {
 
     const data = await res.json();
     if (!res.ok) {
-      return NextResponse.json({ error: data.message || 'Échec du paiement' }, { status: res.status });
+      return NextResponse.json({ error: data.message || 'Echec du paiement' }, { status: res.status });
     }
     return NextResponse.json(data);
   } catch (err) {
@@ -2677,33 +2901,77 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
                         fs_1.default.mkdirSync(hooksDir, { recursive: true });
                     const reactHookContentTs = `import { useState } from 'react';
 
+interface CheckoutParams {
+  provider?: string;
+  amount: number;
+  currency?: string;
+  email?: string;
+  firstname?: string;
+  lastname?: string;
+  phoneNumber?: string;
+  operator?: string;
+  description?: string;
+  callbackUrl?: string;
+}
+
 export function useAshgatePayment() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const initCheckout = async (params: any) => {
+  const initCheckout = async (params: CheckoutParams) => {
     setIsProcessing(true);
     setError(null);
     setPaymentUrl(null);
 
     const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
-
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
-    const payload = {
-      provider: provider,
-      amount: params.amount,
-      currency: params.currency || 'XOF',
-      email: params.email,
-      firstname: params.firstname,
-      lastname: params.lastname,
-      phoneNumber: params.phoneNumber,
-      payment_method: params.operator || 'mtn',
-      description: params.description || 'Paiement Ashgate',
-    };
+    // Routing intelligent par fournisseur :
+    // feexpay  → POST /feexpay/payin (route dédiée, payload spécifique)
+    // sebpay   → POST /sebpay/direct-payment (route dédiée)
+    // autres   → POST /payments/direct-payment (route universelle multi-gateway)
+    let endpoint: string;
+    let payload: Record<string, unknown>;
+
+    if (provider === 'feexpay') {
+      endpoint = \`\${apiUrl}/feexpay/payin\`;
+      payload = {
+        network: params.operator || 'mtn',
+        amount: params.amount,
+        phoneNumber: params.phoneNumber,
+        fullname: [params.firstname, params.lastname].filter(Boolean).join(' ') || 'Client',
+        email: params.email,
+        description: params.description || 'Paiement Ashgate',
+      };
+    } else if (provider === 'sebpay') {
+      endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+      payload = {
+        amount: params.amount,
+        currency: params.currency || 'XOF',
+        phoneNumber: params.phoneNumber,
+        email: params.email,
+        firstname: params.firstname,
+        lastname: params.lastname,
+        description: params.description || 'Paiement Ashgate',
+        callback_url: params.callbackUrl,
+      };
+    } else {
+      endpoint = \`\${apiUrl}/payments/direct-payment\`;
+      payload = {
+        provider,
+        amount: params.amount,
+        currency: params.currency || 'XOF',
+        email: params.email,
+        firstname: params.firstname,
+        lastname: params.lastname,
+        phone_number: params.phoneNumber,
+        payment_method: params.operator || 'mtn',
+        description: params.description || 'Paiement Ashgate',
+        callback_url: params.callbackUrl,
+      };
+    }
 
     try {
       const res = await fetch(endpoint, {
@@ -2716,7 +2984,7 @@ export function useAshgatePayment() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Échec du paiement');
+      if (!res.ok) throw new Error(data.message || 'Echec du paiement');
 
       const url = data.url || data.payment_url;
       if (url) setPaymentUrl(url);
@@ -2725,7 +2993,7 @@ export function useAshgatePayment() {
       setError(err.message || 'Erreur lors du paiement');
       throw err;
     } finally {
-      isProcessing.value = false;
+      setIsProcessing(false);
     }
   };
 
@@ -2746,21 +3014,52 @@ export function useAshgatePayment() {
 
     const apiUrl = import.meta.env.VITE_ASHGATE_API_URL || '${cloudUrl}';
     const projectKey = import.meta.env.VITE_ASHGATE_PROJECT_KEY || '${projectKey}';
-
     const provider = (params.provider || 'fedapay').toLowerCase();
-    const endpoint = \`\${apiUrl}/payments/direct-payment\`;
 
-    const payload = {
-      provider: provider,
-      amount: params.amount,
-      currency: params.currency || 'XOF',
-      email: params.email,
-      firstname: params.firstname,
-      lastname: params.lastname,
-      phoneNumber: params.phoneNumber,
-      payment_method: params.operator || 'mtn',
-      description: params.description || 'Paiement Ashgate',
-    };
+    // Routing intelligent par fournisseur :
+    // feexpay  → POST /feexpay/payin (route dédiée, payload spécifique)
+    // sebpay   → POST /sebpay/direct-payment (route dédiée)
+    // autres   → POST /payments/direct-payment (route universelle multi-gateway)
+    let endpoint;
+    let payload;
+
+    if (provider === 'feexpay') {
+      endpoint = \`\${apiUrl}/feexpay/payin\`;
+      payload = {
+        network: params.operator || 'mtn',
+        amount: params.amount,
+        phoneNumber: params.phoneNumber,
+        fullname: [params.firstname, params.lastname].filter(Boolean).join(' ') || 'Client',
+        email: params.email,
+        description: params.description || 'Paiement Ashgate',
+      };
+    } else if (provider === 'sebpay') {
+      endpoint = \`\${apiUrl}/sebpay/direct-payment\`;
+      payload = {
+        amount: params.amount,
+        currency: params.currency || 'XOF',
+        phoneNumber: params.phoneNumber,
+        email: params.email,
+        firstname: params.firstname,
+        lastname: params.lastname,
+        description: params.description || 'Paiement Ashgate',
+        callback_url: params.callbackUrl,
+      };
+    } else {
+      endpoint = \`\${apiUrl}/payments/direct-payment\`;
+      payload = {
+        provider,
+        amount: params.amount,
+        currency: params.currency || 'XOF',
+        email: params.email,
+        firstname: params.firstname,
+        lastname: params.lastname,
+        phone_number: params.phoneNumber,
+        payment_method: params.operator || 'mtn',
+        description: params.description || 'Paiement Ashgate',
+        callback_url: params.callbackUrl,
+      };
+    }
 
     try {
       const res = await fetch(endpoint, {
@@ -2773,7 +3072,7 @@ export function useAshgatePayment() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Échec du paiement');
+      if (!res.ok) throw new Error(data.message || 'Echec du paiement');
 
       const url = data.url || data.payment_url;
       if (url) setPaymentUrl(url);
