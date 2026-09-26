@@ -191,15 +191,16 @@ export function registerInitCommands(program: Command): void {
 
             // Configuration interactive des fournisseurs de paiement
             console.log(chalk.cyan('\nConfiguration des fournisseurs de paiement :'));
-            console.log('  1. Tous les 6 fournisseurs (FedaPay, pawaPay, PayPal, FeexPay, PayDunya, Stripe) [défaut]');
+            console.log('  1. Tous les 7 fournisseurs (FedaPay, pawaPay, PayPal, FeexPay, PayDunya, Stripe, SebPay) [défaut]');
             console.log('  2. FedaPay uniquement (Mobile Money Afrique de l\'Ouest)');
             console.log('  3. pawaPay uniquement (Mobile Money Pan-Africain)');
             console.log('  4. PayPal uniquement (Checkout V2)');
             console.log('  5. FeexPay uniquement (Direct / Proxy)');
             console.log('  6. PayDunya uniquement (Sénégal & UEMOA)');
             console.log('  7. Stripe uniquement (Cartes Bancaires Internationales)');
-            console.log('  8. Sélection personnalisée');
-            const providerSelection = await askQuestion('Choisissez une option (1-8) [1 par défaut] : ');
+            console.log('  8. SebPay uniquement (Afrique de l\'Ouest / Mobile Money & Cartes)');
+            console.log('  9. Sélection personnalisée');
+            const providerSelection = await askQuestion('Choisissez une option (1-9) [1 par défaut] : ');
 
             let useFedapay = true;
             let usePawapay = true;
@@ -207,26 +208,30 @@ export function registerInitCommands(program: Command): void {
             let useFeexpay = true;
             let usePaydunya = true;
             let useStripe = true;
+            let useSebpay = true;
 
             if (providerSelection === '2') {
-                usePawapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false; useStripe = false;
+                usePawapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false; useStripe = false; useSebpay = false;
             } else if (providerSelection === '3') {
-                useFedapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false; useStripe = false;
+                useFedapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false; useStripe = false; useSebpay = false;
             } else if (providerSelection === '4') {
-                useFedapay = false; usePawapay = false; useFeexpay = false; usePaydunya = false; useStripe = false;
+                useFedapay = false; usePawapay = false; useFeexpay = false; usePaydunya = false; useStripe = false; useSebpay = false;
             } else if (providerSelection === '5') {
-                useFedapay = false; usePawapay = false; usePaypal = false; usePaydunya = false; useStripe = false;
+                useFedapay = false; usePawapay = false; usePaypal = false; usePaydunya = false; useStripe = false; useSebpay = false;
             } else if (providerSelection === '6') {
-                useFedapay = false; usePawapay = false; usePaypal = false; useFeexpay = false; useStripe = false;
+                useFedapay = false; usePawapay = false; usePaypal = false; useFeexpay = false; useStripe = false; useSebpay = false;
             } else if (providerSelection === '7') {
-                useFedapay = false; usePawapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false;
+                useFedapay = false; usePawapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false; useSebpay = false;
             } else if (providerSelection === '8') {
+                useFedapay = false; usePawapay = false; usePaypal = false; useFeexpay = false; usePaydunya = false; useStripe = false;
+            } else if (providerSelection === '9') {
                 useFedapay = (await askQuestion('Activer FedaPay ? (o/n) [o] : ')).toLowerCase() !== 'n';
                 usePawapay = (await askQuestion('Activer pawaPay ? (o/n) [o] : ')).toLowerCase() !== 'n';
                 usePaypal = (await askQuestion('Activer PayPal ? (o/n) [o] : ')).toLowerCase() !== 'n';
                 useFeexpay = (await askQuestion('Activer FeexPay ? (o/n) [o] : ')).toLowerCase() !== 'n';
                 usePaydunya = (await askQuestion('Activer PayDunya ? (o/n) [o] : ')).toLowerCase() !== 'n';
                 useStripe = (await askQuestion('Activer Stripe ? (o/n) [o] : ')).toLowerCase() !== 'n';
+                useSebpay = (await askQuestion('Activer SebPay ? (o/n) [o] : ')).toLowerCase() !== 'n';
             }
 
             let feexpayMode: 'proxy' | 'sdk' = 'proxy';
@@ -343,6 +348,7 @@ class AshgateConfig {
   static const bool useFeexpay = ${useFeexpay};
   static const bool usePaydunya = ${usePaydunya};
   static const bool useStripe = ${useStripe};
+  static const bool useSebpay = ${useSebpay};
   static const String feexpayToken = '${feexpayToken}';
   static const String feexpayShopId = '${feexpayShopId}';
 }
@@ -833,6 +839,72 @@ class FeexpayProvider implements AshgatePaymentProvider {
                         if (fs.existsSync(oldFeex)) fs.unlinkSync(oldFeex);
                     }
 
+                    // 4.5 providers/sebpay_provider.dart (Adaptateur SebPay)
+                    if (useSebpay) {
+                        const sebpayProviderContent = `// Généré automatiquement par ashgate init
+import 'dart:convert';
+import 'dart:io';
+import '../ashgate_config.dart';
+import '../ashgate_payment_provider.dart';
+
+class SebpayProvider implements AshgatePaymentProvider {
+  @override
+  Future<AshgatePaymentResult> pay(AshgatePaymentRequest request) async {
+    final client = HttpClient();
+    try {
+      final url = Uri.parse('\${AshgateConfig.cloudUrl}/sebpay/direct-payment');
+
+      final req = await client.postUrl(url);
+      req.headers.set('content-type', 'application/json');
+      req.headers.set('x-feda-project-key', AshgateConfig.projectKey);
+      req.headers.set('x-feda-env', AshgateConfig.environment.toString().split('.').last);
+
+      final body = {
+        'amount': request.amount.toInt(),
+        'currency': request.currency,
+        'phoneNumber': request.phoneNumber,
+        'paymentMethod': request.paymentMethod,
+        'firstname': request.firstname,
+        'lastname': request.lastname,
+        'email': request.email,
+        'description': request.description,
+      };
+
+      req.add(utf8.encode(jsonEncode(body)));
+      final response = await req.close();
+      
+      final responseBody = await response.transform(utf8.decoder).join();
+      final json = jsonDecode(responseBody) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final reference = json['transactionId'] ?? json['id'] ?? json['reference'];
+        return AshgatePaymentResult(
+          success: true,
+          transactionId: reference?.toString(),
+          paymentUrl: json['paymentUrl'] ?? json['payment_url'] ?? json['url'],
+          token: reference?.toString(),
+        );
+      } else {
+        return AshgatePaymentResult(
+          success: false, 
+          errorMessage: json['message'] ?? "Erreur HTTP \${response.statusCode}"
+        );
+      }
+    } catch (e) {
+      return AshgatePaymentResult(success: false, errorMessage: e.toString());
+    } finally {
+      client.close();
+    }
+  }
+}
+`;
+                        fs.writeFileSync(path.join(providersDir, 'sebpay_provider.dart'), sebpayProviderContent);
+                        console.log(chalk.green('✓ Fichier lib/providers/sebpay_provider.dart généré.'));
+                    } else {
+                        const oldSeb = path.join(providersDir, 'sebpay_provider.dart');
+                        if (fs.existsSync(oldSeb)) fs.unlinkSync(oldSeb);
+                    }
+
                     // 5. ashgate_payment.dart (Orchestrateur & Helpers)
                     const imports: string[] = [
                         "import 'package:flutter/material.dart';",
@@ -840,10 +912,10 @@ class FeexpayProvider implements AshgatePaymentProvider {
                     if (useFedapay) {
                         imports.push("import 'package:feda_flutter/feda_flutter.dart';");
                     }
-                    if ((useFeexpay && feexpayMode === 'proxy') || useStripe || usePawapay || usePaypal || usePaydunya) {
+                    if ((useFeexpay && feexpayMode === 'proxy') || useStripe || usePawapay || usePaypal || usePaydunya || useSebpay) {
                         imports.push("import 'package:webview_flutter/webview_flutter.dart';");
                     }
-                    if (useFedapay || useStripe || useFeexpay || usePawapay || usePaypal || usePaydunya) {
+                    if (useFedapay || useStripe || useFeexpay || usePawapay || usePaypal || usePaydunya || useSebpay) {
                         imports.push("import 'ashgate_config.dart';");
                     }
                     imports.push("import 'ashgate_payment_provider.dart';");
@@ -865,6 +937,9 @@ class FeexpayProvider implements AshgatePaymentProvider {
                     if (useStripe) {
                         imports.push("import 'providers/stripe_provider.dart';");
                     }
+                    if (useSebpay) {
+                        imports.push("import 'providers/sebpay_provider.dart';");
+                    }
 
                     let providerResolver = '\n    final name = providerName.toLowerCase();';
                     if (useFedapay) {
@@ -884,6 +959,9 @@ class FeexpayProvider implements AshgatePaymentProvider {
                     }
                     if (useStripe) {
                         providerResolver += '\n    if (name == \'stripe\') return StripeProvider();';
+                    }
+                    if (useSebpay) {
+                        providerResolver += '\n    if (name == \'sebpay\') return SebpayProvider();';
                     }
                     providerResolver += `\n    throw Exception("Le fournisseur de paiement '\$providerName' n'est pas supporté.");`;
 
@@ -2064,27 +2142,87 @@ export default defineEventHandler(async (event) => {
                     if (!fs.existsSync(compDir)) fs.mkdirSync(compDir, { recursive: true });
 
                     const vueContent = `<template>
-  <div class="ashgate-checkout p-6 bg-slate-900 text-white rounded-xl shadow-xl max-w-md mx-auto border border-slate-800">
+  <div class="ashgate-checkout p-6 bg-slate-900 text-white rounded-xl shadow-xl max-w-lg mx-auto border border-slate-800">
     <h2 class="text-xl font-bold mb-4 text-center">Paiement Sécurisé Ashgate</h2>
 
     <form @submit.prevent="handlePay" class="space-y-4">
       <div>
         <label class="block text-sm font-medium mb-1 text-slate-300">Fournisseur</label>
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button
             type="button"
-            v-for="p in ['fedapay', 'feexpay', 'stripe', 'pawapay', 'paypal', 'paydunya']"
+            v-for="p in ['fedapay', 'feexpay', 'sebpay', 'stripe', 'pawapay', 'paypal', 'paydunya']"
             :key="p"
             @click="form.provider = p"
             :class="[
-              'py-2 px-3 text-xs font-semibold rounded-lg border transition uppercase',
+              'py-2 px-2.5 text-xs font-semibold rounded-lg border transition uppercase text-center',
               form.provider === p
-                ? 'bg-indigo-600 border-indigo-500 text-white'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                ? 'bg-indigo-600 border-indigo-500 text-white shadow-md'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
             ]"
           >
             {{ p }}
           </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2" v-if="!props.customer?.firstname || !props.customer?.lastname">
+        <div>
+          <label class="block text-sm font-medium mb-1 text-slate-300">Prénom</label>
+          <input
+            v-model="form.firstname"
+            type="text"
+            placeholder="Prénom"
+            required
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1 text-slate-300">Nom</label>
+          <input
+            v-model="form.lastname"
+            type="text"
+            placeholder="Nom"
+            required
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-slate-300">Email</label>
+        <input
+          v-model="form.email"
+          type="email"
+          placeholder="client@example.com"
+          required
+          class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+        />
+      </div>
+
+      <div v-if="['fedapay', 'feexpay', 'pawapay', 'sebpay'].includes(form.provider)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1 text-slate-300">Téléphone Mobile Money</label>
+          <input
+            v-model="form.phoneNumber"
+            type="tel"
+            placeholder="ex: 90000000"
+            required
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1 text-slate-300">Opérateur Mobile Money</label>
+          <select
+            v-model="form.operator"
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+          >
+            <option value="mtn">MTN Mobile Money</option>
+            <option value="moov">Moov Money</option>
+            <option value="celtiis">Celtiis Cash</option>
+            <option value="orange">Orange Money</option>
+          </select>
         </div>
       </div>
 
@@ -2096,40 +2234,6 @@ export default defineEventHandler(async (event) => {
           required
           class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
         />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-1 text-slate-300">Email</label>
-        <input
-          v-model="form.email"
-          type="email"
-          required
-          class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-        />
-      </div>
-
-      <div v-if="['fedapay', 'feexpay', 'pawapay'].includes(form.provider)">
-        <label class="block text-sm font-medium mb-1 text-slate-300">Téléphone Mobile Money</label>
-        <input
-          v-model="form.phoneNumber"
-          type="tel"
-          placeholder="90000000"
-          required
-          class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-        />
-      </div>
-
-      <div v-if="['fedapay', 'feexpay', 'pawapay'].includes(form.provider)">
-        <label class="block text-sm font-medium mb-1 text-slate-300">Opérateur</label>
-        <select
-          v-model="form.operator"
-          class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-        >
-          <option value="mtn">MTN Mobile Money</option>
-          <option value="moov">Moov Money</option>
-          <option value="celtiis">Celtiis Cash</option>
-          <option value="orange">Orange Money</option>
-        </select>
       </div>
 
       <button
@@ -2151,21 +2255,28 @@ export default defineEventHandler(async (event) => {
 </template>
 
 <script setup>
+import { reactive } from 'vue';
+
 const props = defineProps({
   amount: { type: Number, default: 5000 },
   currency: { type: String, default: 'XOF' },
+  description: { type: String, default: 'Paiement Sécurisé Ashgate' },
+  customer: {
+    type: Object,
+    default: () => ({ firstname: '', lastname: '', email: '', phone: '' }),
+  },
 });
 
 const form = reactive({
   provider: 'fedapay',
   amount: props.amount,
   currency: props.currency,
-  email: 'client@example.com',
-  firstname: 'Alexis',
-  lastname: 'Ashborn',
-  phoneNumber: '90000000',
+  email: props.customer?.email || '',
+  firstname: props.customer?.firstname || '',
+  lastname: props.customer?.lastname || '',
+  phoneNumber: props.customer?.phone || '',
   operator: 'mtn',
-  description: 'Abonnement Ashgate',
+  description: props.description,
 });
 
 const { isProcessing, paymentUrl, error, initCheckout } = useAshgatePayment();
@@ -2667,10 +2778,29 @@ export function useAshgatePayment() {
 import React, { useState } from 'react';
 import { useAshgatePayment } from '../hooks/useAshgatePayment';
 
-export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
-  const [provider, setProvider] = useState<'fedapay' | 'feexpay' | 'stripe' | 'pawapay' | 'paypal' | 'paydunya'>('fedapay');
-  const [email, setEmail] = useState('client@example.com');
-  const [phoneNumber, setPhoneNumber] = useState('90000000');
+interface AshgateCheckoutProps {
+  amount?: number;
+  currency?: string;
+  description?: string;
+  customer?: {
+    firstname?: string;
+    lastname?: string;
+    email?: string;
+    phone?: string;
+  };
+}
+
+export default function AshgateCheckout({
+  amount = 5000,
+  currency = 'XOF',
+  description = 'Paiement Sécurisé Ashgate',
+  customer = {},
+}: AshgateCheckoutProps) {
+  const [provider, setProvider] = useState<'fedapay' | 'feexpay' | 'sebpay' | 'stripe' | 'pawapay' | 'paypal' | 'paydunya'>('fedapay');
+  const [firstname, setFirstname] = useState(customer.firstname || '');
+  const [lastname, setLastname] = useState(customer.lastname || '');
+  const [email, setEmail] = useState(customer.email || '');
+  const [phoneNumber, setPhoneNumber] = useState(customer.phone || '');
   const [operator, setOperator] = useState('mtn');
 
   const { isProcessing, paymentUrl, error, initCheckout } = useAshgatePayment();
@@ -2682,31 +2812,35 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
         provider,
         amount,
         currency,
+        firstname,
+        lastname,
         email,
         phoneNumber,
         operator,
-        description: 'Paiement via Ashgate Next.js',
+        description,
       });
     } catch (err) {
       console.error(err);
     }
   };
 
+  const providers = ['fedapay', 'feexpay', 'sebpay', 'stripe', 'pawapay', 'paypal', 'paydunya'] as const;
+
   return (
-    <div style={{ maxWidth: '420px', margin: '2rem auto', padding: '1.5rem', background: '#0F172A', color: '#FFF', borderRadius: '12px', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: '480px', margin: '2rem auto', padding: '1.5rem', background: '#0F172A', color: '#FFF', borderRadius: '12px', fontFamily: 'sans-serif', border: '1px solid #1E293B' }}>
       <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '1rem' }}>Paiement Sécurisé Ashgate</h2>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Fournisseur</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-            {(['fedapay', 'feexpay', 'stripe', 'pawapay', 'paypal', 'paydunya'] as const).map((p) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(85px, 1fr))', gap: '0.5rem' }}>
+            {providers.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setProvider(p)}
                 style={{
-                  padding: '0.5rem',
+                  padding: '0.5rem 0.25rem',
                   borderRadius: '6px',
                   border: '1px solid ' + (provider === p ? '#6366F1' : '#334155'),
                   background: provider === p ? '#4F46E5' : '#1E293B',
@@ -2715,6 +2849,7 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
                   cursor: 'pointer',
                   fontSize: '0.75rem',
                   textTransform: 'uppercase',
+                  textAlign: 'center',
                 }}
               >
                 {p}
@@ -2723,10 +2858,38 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
           </div>
         </div>
 
+        {(!customer.firstname || !customer.lastname) && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Prénom</label>
+              <input
+                type="text"
+                placeholder="Prénom"
+                value={firstname}
+                onChange={(e) => setFirstname(e.target.value)}
+                required
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Nom</label>
+              <input
+                type="text"
+                placeholder="Nom"
+                value={lastname}
+                onChange={(e) => setLastname(e.target.value)}
+                required
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+              />
+            </div>
+          </div>
+        )}
+
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Email</label>
           <input
             type="email"
+            placeholder="client@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -2734,17 +2897,34 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
           />
         </div>
 
-        {['fedapay', 'feexpay', 'pawapay'].includes(provider) && (
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Téléphone Mobile Money</label>
-            <input
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              required
-              style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
-            />
-          </div>
+        {['fedapay', 'feexpay', 'pawapay', 'sebpay'].includes(provider) && (
+          <>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Téléphone Mobile Money</label>
+              <input
+                type="tel"
+                placeholder="ex: 90000000"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                required
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Opérateur Mobile Money</label>
+              <select
+                value={operator}
+                onChange={(e) => setOperator(e.target.value)}
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+              >
+                <option value="mtn">MTN Mobile Money</option>
+                <option value="moov">Moov Money</option>
+                <option value="celtiis">Celtiis Cash</option>
+                <option value="orange">Orange Money</option>
+              </select>
+            </div>
+          </>
         )}
 
         <button
@@ -2773,10 +2953,17 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
 import React, { useState } from 'react';
 import { useAshgatePayment } from '../hooks/useAshgatePayment';
 
-export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
+export default function AshgateCheckout({
+  amount = 5000,
+  currency = 'XOF',
+  description = 'Paiement Sécurisé Ashgate',
+  customer = {},
+}) {
   const [provider, setProvider] = useState('fedapay');
-  const [email, setEmail] = useState('client@example.com');
-  const [phoneNumber, setPhoneNumber] = useState('90000000');
+  const [firstname, setFirstname] = useState(customer.firstname || '');
+  const [lastname, setLastname] = useState(customer.lastname || '');
+  const [email, setEmail] = useState(customer.email || '');
+  const [phoneNumber, setPhoneNumber] = useState(customer.phone || '');
   const [operator, setOperator] = useState('mtn');
 
   const { isProcessing, paymentUrl, error, initCheckout } = useAshgatePayment();
@@ -2788,31 +2975,35 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
         provider,
         amount,
         currency,
+        firstname,
+        lastname,
         email,
         phoneNumber,
         operator,
-        description: 'Paiement via Ashgate Next.js',
+        description,
       });
     } catch (err) {
       console.error(err);
     }
   };
 
+  const providers = ['fedapay', 'feexpay', 'sebpay', 'stripe', 'pawapay', 'paypal', 'paydunya'];
+
   return (
-    <div style={{ maxWidth: '420px', margin: '2rem auto', padding: '1.5rem', background: '#0F172A', color: '#FFF', borderRadius: '12px', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: '480px', margin: '2rem auto', padding: '1.5rem', background: '#0F172A', color: '#FFF', borderRadius: '12px', fontFamily: 'sans-serif', border: '1px solid #1E293B' }}>
       <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '1rem' }}>Paiement Sécurisé Ashgate</h2>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Fournisseur</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-            {['fedapay', 'feexpay', 'stripe', 'pawapay', 'paypal', 'paydunya'].map((p) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(85px, 1fr))', gap: '0.5rem' }}>
+            {providers.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setProvider(p)}
                 style={{
-                  padding: '0.5rem',
+                  padding: '0.5rem 0.25rem',
                   borderRadius: '6px',
                   border: '1px solid ' + (provider === p ? '#6366F1' : '#334155'),
                   background: provider === p ? '#4F46E5' : '#1E293B',
@@ -2821,6 +3012,7 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
                   cursor: 'pointer',
                   fontSize: '0.75rem',
                   textTransform: 'uppercase',
+                  textAlign: 'center',
                 }}
               >
                 {p}
@@ -2829,10 +3021,38 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
           </div>
         </div>
 
+        {(!customer.firstname || !customer.lastname) && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Prénom</label>
+              <input
+                type="text"
+                placeholder="Prénom"
+                value={firstname}
+                onChange={(e) => setFirstname(e.target.value)}
+                required
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Nom</label>
+              <input
+                type="text"
+                placeholder="Nom"
+                value={lastname}
+                onChange={(e) => setLastname(e.target.value)}
+                required
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+              />
+            </div>
+          </div>
+        )}
+
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Email</label>
           <input
             type="email"
+            placeholder="client@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -2840,17 +3060,34 @@ export default function AshgateCheckout({ amount = 5000, currency = 'XOF' }) {
           />
         </div>
 
-        {['fedapay', 'feexpay', 'pawapay'].includes(provider) && (
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Téléphone Mobile Money</label>
-            <input
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              required
-              style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
-            />
-          </div>
+        {['fedapay', 'feexpay', 'pawapay', 'sebpay'].includes(provider) && (
+          <>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Téléphone Mobile Money</label>
+              <input
+                type="tel"
+                placeholder="ex: 90000000"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                required
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', color: '#94A3B8' }}>Opérateur Mobile Money</label>
+              <select
+                value={operator}
+                onChange={(e) => setOperator(e.target.value)}
+                style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #334155', background: '#1E293B', color: '#FFF' }}
+              >
+                <option value="mtn">MTN Mobile Money</option>
+                <option value="moov">Moov Money</option>
+                <option value="celtiis">Celtiis Cash</option>
+                <option value="orange">Orange Money</option>
+              </select>
+            </div>
+          </>
         )}
 
         <button

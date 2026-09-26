@@ -8,7 +8,7 @@ const chalk_1 = __importDefault(require("chalk"));
 const client_1 = require("../api/client");
 const keycloak_1 = require("../auth/keycloak");
 function mapOptionsToDto(options) {
-    const { sandboxKey, sandboxApiKey, liveKey, liveApiKey, feexpayKey, feexpayApiKey, feexpayShop, feexpayShopId, stripeKey, stripeSecretKey, stripePub, stripePublishableKey, stripeWebhook, stripeWebhookSecret, pawapayKey, pawapayApiKey, paypalId, paypalClientId, paypalSecret, paypalClientSecret, paydunyaMaster, paydunyaMasterKey, paydunyaPrivate, paydunyaPrivateKey, paydunyaToken, ...rest } = options;
+    const { sandboxKey, sandboxApiKey, liveKey, liveApiKey, feexpayKey, feexpayApiKey, feexpayShop, feexpayShopId, stripeKey, stripeSecretKey, stripePub, stripePublishableKey, stripeWebhook, stripeWebhookSecret, pawapayKey, pawapayApiKey, paypalId, paypalClientId, paypalSecret, paypalClientSecret, paydunyaMaster, paydunyaMasterKey, paydunyaPrivate, paydunyaPrivateKey, paydunyaToken, sebpayKey, sebpayApiKey, sebpaySecret, sebpaySecretKey, sebpayMerchant, sebpayMerchantId, ...rest } = options;
     const dto = { ...rest };
     const valOrUndefined = (val1, val2) => {
         if (val1 !== undefined)
@@ -55,6 +55,15 @@ function mapOptionsToDto(options) {
         dto.paydunyaPrivateKey = paydunyaPrivateVal;
     if (paydunyaToken !== undefined)
         dto.paydunyaToken = paydunyaToken;
+    const sebpayKeyVal = valOrUndefined(sebpayApiKey, sebpayKey);
+    if (sebpayKeyVal !== undefined)
+        dto.sebpayApiKey = sebpayKeyVal;
+    const sebpaySecretVal = valOrUndefined(sebpaySecretKey, sebpaySecret);
+    if (sebpaySecretVal !== undefined)
+        dto.sebpaySecretKey = sebpaySecretVal;
+    const sebpayMerchantVal = valOrUndefined(sebpayMerchantId, sebpayMerchant);
+    if (sebpayMerchantVal !== undefined)
+        dto.sebpayMerchantId = sebpayMerchantVal;
     return dto;
 }
 function registerProjectCommands(program) {
@@ -112,6 +121,9 @@ function registerProjectCommands(program) {
         .option('--paydunya-master <paydunyaMasterKey>', 'Master Key PayDunya')
         .option('--paydunya-private <paydunyaPrivateKey>', 'Private Key PayDunya')
         .option('--paydunya-token <paydunyaToken>', 'Token PayDunya')
+        .option('--sebpay-key <sebpayApiKey>', 'Clé API SebPay')
+        .option('--sebpay-secret <sebpaySecretKey>', 'Clé Secrète SebPay')
+        .option('--sebpay-merchant <sebpayMerchantId>', 'Merchant ID SebPay')
         .option('--send-invoices <sendInvoices>', 'Envoyer les factures par email automatiquement (true/false)', (v) => v === 'true')
         .action(async (options) => {
         (0, keycloak_1.requireAuth)();
@@ -166,7 +178,10 @@ function registerProjectCommands(program) {
             console.log(`  PayPal Client Secret    : ${p.paypalClientSecret ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}`);
             console.log(`  PayDunya Master Key     : ${p.paydunyaMasterKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
             console.log(`  PayDunya Private Key    : ${p.paydunyaPrivateKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
-            console.log(`  PayDunya Token          : ${p.paydunyaToken ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}\n`);
+            console.log(`  PayDunya Token          : ${p.paydunyaToken ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}`);
+            console.log(`  SebPay API Key          : ${p.sebpayApiKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  SebPay Secret Key       : ${p.sebpaySecretKey ? chalk_1.default.green('Configurée') : chalk_1.default.dim('Non configurée')}`);
+            console.log(`  SebPay Merchant ID      : ${p.sebpayMerchantId ? chalk_1.default.green('Configuré') : chalk_1.default.dim('Non configuré')}\n`);
         }
         catch (err) {
             console.error(chalk_1.default.red('✗ Impossible d\'afficher le projet :'), err.response?.data?.message || err.message);
@@ -196,6 +211,9 @@ function registerProjectCommands(program) {
         .option('--paydunya-master <paydunyaMasterKey>', 'Master Key PayDunya')
         .option('--paydunya-private <paydunyaPrivateKey>', 'Private Key PayDunya')
         .option('--paydunya-token <paydunyaToken>', 'Token PayDunya')
+        .option('--sebpay-key <sebpayApiKey>', 'Clé API SebPay')
+        .option('--sebpay-secret <sebpaySecretKey>', 'Clé Secrète SebPay')
+        .option('--sebpay-merchant <sebpayMerchantId>', 'Merchant ID SebPay')
         .option('--send-invoices <sendInvoices>', 'Envoyer les factures (true/false)', (v) => v === 'true')
         .action(async (slug, options) => {
         (0, keycloak_1.requireAuth)();

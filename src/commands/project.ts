@@ -35,6 +35,12 @@ interface CliOptions {
     paydunyaPrivate?: string;
     paydunyaPrivateKey?: string;
     paydunyaToken?: string;
+    sebpayKey?: string;
+    sebpayApiKey?: string;
+    sebpaySecret?: string;
+    sebpaySecretKey?: string;
+    sebpayMerchant?: string;
+    sebpayMerchantId?: string;
     sendInvoices?: boolean;
     [key: string]: any;
 }
@@ -66,6 +72,12 @@ function mapOptionsToDto(options: CliOptions): Record<string, any> {
         paydunyaPrivate,
         paydunyaPrivateKey,
         paydunyaToken,
+        sebpayKey,
+        sebpayApiKey,
+        sebpaySecret,
+        sebpaySecretKey,
+        sebpayMerchant,
+        sebpayMerchantId,
         ...rest
     } = options;
 
@@ -114,6 +126,15 @@ function mapOptionsToDto(options: CliOptions): Record<string, any> {
     if (paydunyaPrivateVal !== undefined) dto.paydunyaPrivateKey = paydunyaPrivateVal;
 
     if (paydunyaToken !== undefined) dto.paydunyaToken = paydunyaToken;
+
+    const sebpayKeyVal = valOrUndefined(sebpayApiKey, sebpayKey);
+    if (sebpayKeyVal !== undefined) dto.sebpayApiKey = sebpayKeyVal;
+
+    const sebpaySecretVal = valOrUndefined(sebpaySecretKey, sebpaySecret);
+    if (sebpaySecretVal !== undefined) dto.sebpaySecretKey = sebpaySecretVal;
+
+    const sebpayMerchantVal = valOrUndefined(sebpayMerchantId, sebpayMerchant);
+    if (sebpayMerchantVal !== undefined) dto.sebpayMerchantId = sebpayMerchantVal;
 
     return dto;
 }
@@ -182,6 +203,9 @@ export function registerProjectCommands(program: Command): void {
         .option('--paydunya-master <paydunyaMasterKey>', 'Master Key PayDunya')
         .option('--paydunya-private <paydunyaPrivateKey>', 'Private Key PayDunya')
         .option('--paydunya-token <paydunyaToken>', 'Token PayDunya')
+        .option('--sebpay-key <sebpayApiKey>', 'Clé API SebPay')
+        .option('--sebpay-secret <sebpaySecretKey>', 'Clé Secrète SebPay')
+        .option('--sebpay-merchant <sebpayMerchantId>', 'Merchant ID SebPay')
         .option('--send-invoices <sendInvoices>', 'Envoyer les factures par email automatiquement (true/false)', (v) => v === 'true')
         .action(async (options) => {
             requireAuth();
@@ -238,7 +262,10 @@ export function registerProjectCommands(program: Command): void {
                 console.log(`  PayPal Client Secret    : ${p.paypalClientSecret ? chalk.green('Configuré') : chalk.dim('Non configuré')}`);
                 console.log(`  PayDunya Master Key     : ${p.paydunyaMasterKey ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
                 console.log(`  PayDunya Private Key    : ${p.paydunyaPrivateKey ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
-                console.log(`  PayDunya Token          : ${p.paydunyaToken ? chalk.green('Configuré') : chalk.dim('Non configuré')}\n`);
+                console.log(`  PayDunya Token          : ${p.paydunyaToken ? chalk.green('Configuré') : chalk.dim('Non configuré')}`);
+                console.log(`  SebPay API Key          : ${p.sebpayApiKey ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
+                console.log(`  SebPay Secret Key       : ${p.sebpaySecretKey ? chalk.green('Configurée') : chalk.dim('Non configurée')}`);
+                console.log(`  SebPay Merchant ID      : ${p.sebpayMerchantId ? chalk.green('Configuré') : chalk.dim('Non configuré')}\n`);
             } catch (err: any) {
                 console.error(chalk.red('✗ Impossible d\'afficher le projet :'), err.response?.data?.message || err.message);
                 process.exit(1);
@@ -268,6 +295,9 @@ export function registerProjectCommands(program: Command): void {
         .option('--paydunya-master <paydunyaMasterKey>', 'Master Key PayDunya')
         .option('--paydunya-private <paydunyaPrivateKey>', 'Private Key PayDunya')
         .option('--paydunya-token <paydunyaToken>', 'Token PayDunya')
+        .option('--sebpay-key <sebpayApiKey>', 'Clé API SebPay')
+        .option('--sebpay-secret <sebpaySecretKey>', 'Clé Secrète SebPay')
+        .option('--sebpay-merchant <sebpayMerchantId>', 'Merchant ID SebPay')
         .option('--send-invoices <sendInvoices>', 'Envoyer les factures (true/false)', (v) => v === 'true')
         .action(async (slug, options) => {
             requireAuth();
